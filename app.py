@@ -2,7 +2,13 @@ import os
 
 from flask import Flask, redirect, render_template, request, url_for
 
-from course_service import add_course, delete_course, get_all_courses
+from course_service import (
+    add_course,
+    delete_course,
+    get_all_courses,
+    update_course,
+)
+
 from database import init_db
 
 
@@ -27,6 +33,15 @@ def create_course():
 
     return redirect(url_for("home"))
 
+@app.route("/courses/<int:course_id>/edit", methods=["POST"])
+def edit_course(course_id):
+    name = request.form["name"].strip()
+    code = request.form["code"].strip()
+
+    if name and code:
+        update_course(course_id, name, code)
+
+    return redirect(url_for("home"))
 
 @app.route("/courses/<int:course_id>/delete", methods=["POST"])
 def remove_course(course_id):

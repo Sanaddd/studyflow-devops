@@ -24,7 +24,17 @@ def add_course(name, code):
     connection.commit()
     connection.close()
 
+def update_course(course_id, name, code):
+    connection = get_connection()
 
+    connection.execute(
+        "UPDATE courses SET name = ?, code = ? WHERE id = ?",
+        (name, code, course_id),
+    )
+
+    connection.commit()
+    connection.close()
+    
 def delete_course(course_id):
     connection = get_connection()
 

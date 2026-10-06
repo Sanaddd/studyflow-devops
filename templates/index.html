@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StudyFlow</title>
 </head>
+
 <body>
     <h1>StudyFlow</h1>
 
@@ -26,9 +27,29 @@
         <ul>
             {% for course in courses %}
                 <li>
-                    {{ course["name"] }} - {{ course["code"] }}
+                    <form action="/courses/{{ course['id'] }}/edit" method="POST">
+                        <input
+                            type="text"
+                            name="name"
+                            value="{{ course['name'] }}"
+                            required
+                        >
 
-                    <form action="/courses/{{ course['id'] }}/delete" method="POST" style="display: inline;">
+                        <input
+                            type="text"
+                            name="code"
+                            value="{{ course['code'] }}"
+                            required
+                        >
+
+                        <button type="submit">Save</button>
+                    </form>
+
+                    <form
+                        action="/courses/{{ course['id'] }}/delete"
+                        method="POST"
+                        style="display: inline;"
+                    >
                         <button type="submit">Delete</button>
                     </form>
                 </li>
