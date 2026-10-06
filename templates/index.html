@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyFlow</title>
+</head>
+<body>
+    <h1>StudyFlow</h1>
+
+    <h2>Add a course</h2>
+
+    <form action="/courses" method="POST">
+        <label for="name">Course name:</label>
+        <input type="text" id="name" name="name" required>
+
+        <label for="code">Course code:</label>
+        <input type="text" id="code" name="code" required>
+
+        <button type="submit">Add course</button>
+    </form>
+
+    <h2>My courses</h2>
+
+    {% if courses %}
+        <ul>
+            {% for course in courses %}
+                <li>
+                    {{ course["name"] }} - {{ course["code"] }}
+
+                    <form action="/courses/{{ course['id'] }}/delete" method="POST" style="display: inline;">
+                        <button type="submit">Delete</button>
+                    </form>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No courses added yet.</p>
+    {% endif %}
+</body>
+</html>

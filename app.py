@@ -1,14 +1,37 @@
 import os
 
-from flask import Flask
+from flask import Flask, redirect, render_template, request, url_for
+
+from course_service import add_course, delete_course, get_all_courses
+from database import init_db
 
 
 app = Flask(__name__)
 
+init_db()
+
 
 @app.route("/")
 def home():
-    return "StudyFlow is running"
+    courses = get_all_courses()
+    return render_template("index.html", courses=courses)
+
+
+@app.route("/courses", methods=["POST"])
+def create_course():
+    name = request.form["name"].strip()
+    code = request.form["code"].strip()
+
+    if name and code:
+        add_course(name, code)
+
+    return redirect(url_for("home"))
+
+
+@app.route("/courses/<int:course_id>/delete", methods=["POST"])
+def remove_course(course_id):
+    delete_course(course_id)
+    return redirect(url_for("home"))
 
 
 if __name__ == "__main__":
