@@ -37,3 +37,33 @@ def add_assignment(title, due_date, priority, course_id):
 
     connection.commit()
     connection.close()
+
+def toggle_assignment_complete(assignment_id):
+    connection = get_connection()
+
+    connection.execute(
+        """
+        UPDATE assignments
+        SET completed = CASE
+            WHEN completed = 0 THEN 1
+            ELSE 0
+        END
+        WHERE id = ?
+        """,
+        (assignment_id,),
+    )
+
+    connection.commit()
+    connection.close()
+
+
+def delete_assignment(assignment_id):
+    connection = get_connection()
+
+    connection.execute(
+        "DELETE FROM assignments WHERE id = ?",
+        (assignment_id,),
+    )
+
+    connection.commit()
+    connection.close()

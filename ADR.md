@@ -12,6 +12,18 @@ Alternatives considered: I thought about Django, but it has a lot of built-in fe
 
 Consequences: Flask keeps the project simple and lightweight. The downside is that I have to organise things like the database and project structure myself.
 
+## 2. Keep courses and assignments as separate feature areas
+Date: 2026-10-07
+Status: Decided
+
+Context: The assignment requires two backend feature domains that are separate enough to potentially become different services later.
+
+Decision: I kept course management and assignment management in separate service files. Courses handle course data, while assignments handle assignment data and only use a course id to connect the two.
+
+Alternatives considered: I considered putting all of the course and assignment logic in one file, but I rejected that because it would make the two parts of the app more dependent on each other and harder to separate later.
+
+Consequences: The app is still one monolithic application, but the two areas are easier to understand and could be split into separate services later with less restructuring.
+
 ## 3. Store courses in a simple SQLite table
 Date: 2026-10-06
 Status: Decided

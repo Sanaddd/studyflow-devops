@@ -2,8 +2,12 @@ import os
 
 from flask import Flask, redirect, render_template, request, url_for
 
-from assignment_service import add_assignment, get_all_assignments
-
+from assignment_service import (
+    add_assignment,
+    delete_assignment,
+    get_all_assignments,
+    toggle_assignment_complete,
+)
 from course_service import (
     add_course,
     delete_course,
@@ -51,6 +55,17 @@ def create_assignment():
     if title and due_date and priority and course_id:
         add_assignment(title, due_date, priority, course_id)
 
+    return redirect(url_for("home"))
+
+@app.route("/assignments/<int:assignment_id>/complete", methods=["POST"])
+def complete_assignment(assignment_id):
+    toggle_assignment_complete(assignment_id)
+    return redirect(url_for("home"))
+
+
+@app.route("/assignments/<int:assignment_id>/delete", methods=["POST"])
+def remove_assignment(assignment_id):
+    delete_assignment(assignment_id)
     return redirect(url_for("home"))
 
 @app.route("/courses/<int:course_id>/edit", methods=["POST"])

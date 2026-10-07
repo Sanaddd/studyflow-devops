@@ -93,21 +93,50 @@
         <p>Add a course before creating an assignment.</p>
     {% endif %}
 
-    <h2>My assignments</h2>
+ <h2>My assignments</h2>
 
-    {% if assignments %}
-        <ul>
-            {% for assignment in assignments %}
-                <li>
+{% if assignments %}
+    <ul>
+        {% for assignment in assignments %}
+            <li>
+                {% if assignment["completed"] %}
+                    <s>
+                        {{ assignment["title"] }}
+                        - {{ assignment["course_name"] }}
+                        - Due: {{ assignment["due_date"] }}
+                        - Priority: {{ assignment["priority"] }}
+                    </s>
+                {% else %}
                     {{ assignment["title"] }}
                     - {{ assignment["course_name"] }}
                     - Due: {{ assignment["due_date"] }}
                     - Priority: {{ assignment["priority"] }}
-                </li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p>No assignments added yet.</p>
-    {% endif %}
+                {% endif %}
+
+                <form
+                    action="/assignments/{{ assignment['id'] }}/complete"
+                    method="POST"
+                    style="display: inline;"
+                >
+                    {% if assignment["completed"] %}
+                        <button type="submit">Mark incomplete</button>
+                    {% else %}
+                        <button type="submit">Mark complete</button>
+                    {% endif %}
+                </form>
+
+                <form
+                    action="/assignments/{{ assignment['id'] }}/delete"
+                    method="POST"
+                    style="display: inline;"
+                >
+                    <button type="submit">Delete</button>
+                </form>
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>No assignments added yet.</p>
+{% endif %}
 </body>
 </html>
