@@ -58,5 +58,56 @@
     {% else %}
         <p>No courses added yet.</p>
     {% endif %}
+
+    <hr>
+
+    <h2>Add an assignment</h2>
+
+    {% if courses %}
+        <form action="/assignments" method="POST">
+            <label for="title">Assignment:</label>
+            <input type="text" id="title" name="title" required>
+
+            <label for="due_date">Due date:</label>
+            <input type="date" id="due_date" name="due_date" required>
+
+            <label for="priority">Priority:</label>
+            <select id="priority" name="priority" required>
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+            </select>
+
+            <label for="course_id">Course:</label>
+            <select id="course_id" name="course_id" required>
+                {% for course in courses %}
+                    <option value="{{ course['id'] }}">
+                        {{ course['name'] }}
+                    </option>
+                {% endfor %}
+            </select>
+
+            <button type="submit">Add assignment</button>
+        </form>
+    {% else %}
+        <p>Add a course before creating an assignment.</p>
+    {% endif %}
+
+    <h2>My assignments</h2>
+
+    {% if assignments %}
+        <ul>
+            {% for assignment in assignments %}
+                <li>
+                    {{ assignment["title"] }}
+                    - {{ assignment["course_name"] }}
+                    - Due: {{ assignment["due_date"] }}
+                    - Priority: {{ assignment["priority"] }}
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No assignments added yet.</p>
+    {% endif %}
 </body>
 </html>

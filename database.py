@@ -28,5 +28,19 @@ def init_db():
         """
     )
 
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS assignments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            due_date TEXT NOT NULL,
+            priority TEXT NOT NULL,
+            completed INTEGER NOT NULL DEFAULT 0,
+            course_id INTEGER NOT NULL,
+            FOREIGN KEY (course_id) REFERENCES courses (id)
+        )
+        """
+    )
+    
     connection.commit()
     connection.close()
