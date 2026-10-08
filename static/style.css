@@ -1,0 +1,64 @@
+body {
+    font-family: Arial, sans-serif;
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 0 20px;
+    background-color: #f7f7f7;
+    color: #222;
+}
+
+h1 {
+    margin-bottom: 30px;
+}
+
+section {
+    background: white;
+    padding: 20px;
+    margin-bottom: 25px;
+    border-radius: 8px;
+}
+
+form {
+    margin-bottom: 12px;
+}
+
+input,
+select,
+button {
+    padding: 8px;
+    margin: 4px 4px 4px 0;
+}
+
+button {
+    cursor: pointer;
+}
+
+ul {
+    padding-left: 20px;
+}
+
+li {
+    margin-bottom: 12px;
+}
+
+.assignment-complete {
+    text-decoration: line-through;
+    opacity: 0.6;
+}
+
+.assignment-overdue {
+    font-weight: bold;
+}
+
+.course-row,
+.assignment-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.course-row form,
+.assignment-row form {
+    margin-bottom: 0;
+}

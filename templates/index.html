@@ -4,139 +4,145 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StudyFlow</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 
 <body>
     <h1>StudyFlow</h1>
 
-    <h2>Add a course</h2>
+    <section>
+        <h2>Add a course</h2>
 
-    <form action="/courses" method="POST">
-        <label for="name">Course name:</label>
-        <input type="text" id="name" name="name" required>
+        <form action="/courses" method="POST">
+            <label for="name">Course name:</label>
+            <input type="text" id="name" name="name" required>
 
-        <label for="code">Course code:</label>
-        <input type="text" id="code" name="code" required>
+            <label for="code">Course code:</label>
+            <input type="text" id="code" name="code" required>
 
-        <button type="submit">Add course</button>
-    </form>
-
-    <h2>My courses</h2>
-
-    {% if courses %}
-        <ul>
-            {% for course in courses %}
-                <li>
-                    <form action="/courses/{{ course['id'] }}/edit" method="POST">
-                        <input
-                            type="text"
-                            name="name"
-                            value="{{ course['name'] }}"
-                            required
-                        >
-
-                        <input
-                            type="text"
-                            name="code"
-                            value="{{ course['code'] }}"
-                            required
-                        >
-
-                        <button type="submit">Save</button>
-                    </form>
-
-                    <form
-                        action="/courses/{{ course['id'] }}/delete"
-                        method="POST"
-                        style="display: inline;"
-                    >
-                        <button type="submit">Delete</button>
-                    </form>
-                </li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p>No courses added yet.</p>
-    {% endif %}
-
-    <hr>
-
-    <h2>Add an assignment</h2>
-
-    {% if courses %}
-        <form action="/assignments" method="POST">
-            <label for="title">Assignment:</label>
-            <input type="text" id="title" name="title" required>
-
-            <label for="due_date">Due date:</label>
-            <input type="date" id="due_date" name="due_date" required>
-
-            <label for="priority">Priority:</label>
-            <select id="priority" name="priority" required>
-                <option value="Low">Low</option>
-                <option value="Medium">Medium</option>
-                <option value="High">High</option>
-            </select>
-
-            <label for="course_id">Course:</label>
-            <select id="course_id" name="course_id" required>
-                {% for course in courses %}
-                    <option value="{{ course['id'] }}">
-                        {{ course['name'] }}
-                    </option>
-                {% endfor %}
-            </select>
-
-            <button type="submit">Add assignment</button>
+            <button type="submit">Add course</button>
         </form>
-    {% else %}
-        <p>Add a course before creating an assignment.</p>
-    {% endif %}
+    </section>
 
- <h2>My assignments</h2>
+    <section>
+        <h2>My courses</h2>
 
-{% if assignments %}
-    <ul>
-        {% for assignment in assignments %}
-            <li>
-                {% if assignment["completed"] %}
-                    <s>
-                        {{ assignment["title"] }}
-                        - {{ assignment["course_name"] }}
-                        - Due: {{ assignment["due_date"] }}
-                        - Priority: {{ assignment["priority"] }}
-                    </s>
-                {% else %}
-                    {{ assignment["title"] }}
-                    - {{ assignment["course_name"] }}
-                    - Due: {{ assignment["due_date"] }}
-                    - Priority: {{ assignment["priority"] }}
-                {% endif %}
+        {% if courses %}
+            <ul>
+                {% for course in courses %}
+                    <li class="course-row">
+                        <form action="/courses/{{ course['id'] }}/edit" method="POST">
+                            <input
+                                type="text"
+                                name="name"
+                                value="{{ course['name'] }}"
+                                required
+                            >
 
-                <form
-                    action="/assignments/{{ assignment['id'] }}/complete"
-                    method="POST"
-                    style="display: inline;"
-                >
-                    {% if assignment["completed"] %}
-                        <button type="submit">Mark incomplete</button>
-                    {% else %}
-                        <button type="submit">Mark complete</button>
-                    {% endif %}
-                </form>
+                            <input
+                                type="text"
+                                name="code"
+                                value="{{ course['code'] }}"
+                                required
+                            >
 
-                <form
-                    action="/assignments/{{ assignment['id'] }}/delete"
-                    method="POST"
-                    style="display: inline;"
-                >
-                    <button type="submit">Delete</button>
-                </form>
-            </li>
-        {% endfor %}
-    </ul>
-{% else %}
-    <p>No assignments added yet.</p>
-{% endif %}
+                            <button type="submit">Save</button>
+                        </form>
+
+                        <form
+                            action="/courses/{{ course['id'] }}/delete"
+                            method="POST"
+                        >
+                            <button type="submit">Delete</button>
+                        </form>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No courses added yet.</p>
+        {% endif %}
+    </section>
+
+    <section>
+        <h2>Add an assignment</h2>
+
+        {% if courses %}
+            <form action="/assignments" method="POST">
+                <label for="title">Assignment:</label>
+                <input type="text" id="title" name="title" required>
+
+                <label for="due_date">Due date:</label>
+                <input type="date" id="due_date" name="due_date" required>
+
+                <label for="priority">Priority:</label>
+                <select id="priority" name="priority" required>
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
+                </select>
+
+                <label for="course_id">Course:</label>
+                <select id="course_id" name="course_id" required>
+                    {% for course in courses %}
+                        <option value="{{ course['id'] }}">
+                            {{ course['name'] }}
+                        </option>
+                    {% endfor %}
+                </select>
+
+                <button type="submit">Add assignment</button>
+            </form>
+        {% else %}
+            <p>Add a course before creating an assignment.</p>
+        {% endif %}
+    </section>
+
+    <section>
+        <h2>My assignments</h2>
+
+        {% if assignments %}
+            <ul>
+                {% for assignment in assignments %}
+                    <li class="assignment-row">
+                        {% if assignment["completed"] %}
+                            <span class="assignment-complete">
+                                {{ assignment["title"] }}
+                                - {{ assignment["course_name"] }}
+                                - Due: {{ assignment["due_date"] }}
+                                - Priority: {{ assignment["priority"] }}
+                            </span>
+                        {% else %}
+                            <span>
+                                {{ assignment["title"] }}
+                                - {{ assignment["course_name"] }}
+                                - Due: {{ assignment["due_date"] }}
+                                - Priority: {{ assignment["priority"] }}
+                            </span>
+                        {% endif %}
+
+                        <form
+                            action="/assignments/{{ assignment['id'] }}/complete"
+                            method="POST"
+                        >
+                            {% if assignment["completed"] %}
+                                <button type="submit">Mark incomplete</button>
+                            {% else %}
+                                <button type="submit">Mark complete</button>
+                            {% endif %}
+                        </form>
+
+                        <form
+                            action="/assignments/{{ assignment['id'] }}/delete"
+                            method="POST"
+                        >
+                            <button type="submit">Delete</button>
+                        </form>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No assignments added yet.</p>
+        {% endif %}
+    </section>
 </body>
 </html>
