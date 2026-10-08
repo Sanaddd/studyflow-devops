@@ -1,3 +1,5 @@
+from datetime import date
+
 from database import get_connection
 
 
@@ -21,7 +23,21 @@ def get_all_assignments():
 
     connection.close()
 
-    return assignments
+    today = date.today().isoformat()
+
+    assignment_list = []
+
+    for assignment in assignments:
+        assignment_data = dict(assignment)
+
+        assignment_data["overdue"] = (
+            assignment["due_date"] < today
+            and assignment["completed"] == 0
+        )
+
+        assignment_list.append(assignment_data)
+
+    return assignment_list
 
 
 def add_assignment(title, due_date, priority, course_id):

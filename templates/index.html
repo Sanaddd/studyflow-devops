@@ -104,6 +104,7 @@
             <ul>
                 {% for assignment in assignments %}
                     <li class="assignment-row">
+
                         {% if assignment["completed"] %}
                             <span class="assignment-complete">
                                 {{ assignment["title"] }}
@@ -111,13 +112,24 @@
                                 - Due: {{ assignment["due_date"] }}
                                 - Priority: {{ assignment["priority"] }}
                             </span>
+
                         {% else %}
-                            <span>
-                                {{ assignment["title"] }}
-                                - {{ assignment["course_name"] }}
-                                - Due: {{ assignment["due_date"] }}
-                                - Priority: {{ assignment["priority"] }}
-                            </span>
+                            {% if assignment["overdue"] %}
+                                <span class="assignment-overdue">
+                                    {{ assignment["title"] }}
+                                    - {{ assignment["course_name"] }}
+                                    - Due: {{ assignment["due_date"] }}
+                                    - Priority: {{ assignment["priority"] }}
+                                    - OVERDUE
+                                </span>
+                            {% else %}
+                                <span>
+                                    {{ assignment["title"] }}
+                                    - {{ assignment["course_name"] }}
+                                    - Due: {{ assignment["due_date"] }}
+                                    - Priority: {{ assignment["priority"] }}
+                                </span>
+                            {% endif %}
                         {% endif %}
 
                         <form
@@ -137,6 +149,7 @@
                         >
                             <button type="submit">Delete</button>
                         </form>
+
                     </li>
                 {% endfor %}
             </ul>
