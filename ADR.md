@@ -35,3 +35,15 @@ Decision: I created one `courses` table with an id, course name, and course code
 Alternatives considered: I considered storing more fields such as lecturer name or classroom, but I left them out because they are not needed for the main purpose of the app.
 
 Consequences: The table stays simple and easy to understand. It also gives each course a unique id that can be used when editing or deleting it.
+
+## 4. Focus testing on the core service logic
+Date: 2026-10-09
+Status: Decided
+
+Context: The assignment requires automated tests for the core business logic of both feature domains with at least 70% coverage.
+
+Decision: I focused the tests on the course and assignment service functions and the SQLite database setup instead of testing every Flask route and HTML template.
+
+Alternatives considered: I considered adding route and browser-level tests as well, but I decided the service functions were more important because they contain the main business logic and database operations.
+
+Consequences: The most important backend logic is covered by automated tests and the core files currently have 100% coverage. The web interface itself has less automated testing and is checked manually.

@@ -29,3 +29,20 @@ For assignments, the user should be able to add an assignment, link it to a cour
 ## Current progress
 
 The basic Flask app is set up and running locally.
+
+## Testing
+
+The project uses pytest and pytest-cov for automated testing.
+
+To run the tests:
+
+    python -m pytest -v
+
+To run the tests with coverage:
+
+    python -m pytest --cov=course_service --cov=assignment_service --cov=database --cov-report=term-missing
+
+Current result:
+
+- 7 tests passed
+- 100% coverage across course_service.py, assignment_service.py, and database.py
