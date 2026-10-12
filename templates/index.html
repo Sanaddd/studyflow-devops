@@ -8,154 +8,592 @@
 </head>
 
 <body>
-    <h1>StudyFlow</h1>
 
-    <section>
-        <h2>Add a course</h2>
+<div class="page-shell">
 
-        <form action="/courses" method="POST">
-            <label for="name">Course name:</label>
-            <input type="text" id="name" name="name" required>
+    <nav class="topbar">
+        <div class="topbar-inner">
 
-            <label for="code">Course code:</label>
-            <input type="text" id="code" name="code" required>
+            <div class="brand">
+                <div class="brand-mark">S</div>
 
-            <button type="submit">Add course</button>
-        </form>
-    </section>
+                <div class="brand-text">
+                    <h1>StudyFlow</h1>
+                    <p>Student planner</p>
+                </div>
+            </div>
 
-    <section>
-        <h2>My courses</h2>
+            <span class="topbar-badge">
+                Course & assignment workspace
+            </span>
 
-        {% if courses %}
-            <ul>
-                {% for course in courses %}
-                    <li class="course-row">
-                        <form action="/courses/{{ course['id'] }}/edit" method="POST">
+        </div>
+    </nav>
+
+    <main class="main">
+
+        <section class="hero">
+
+            <div class="hero-card">
+                <h2>Stay on top of your semester.</h2>
+
+                <p>
+                    Keep courses and assignments in one place, track upcoming
+                    deadlines and priorities, and organise your academic workload.
+                </p>
+            </div>
+
+            <div class="stats-card">
+
+                <div class="stat">
+                    <span class="stat-label">Courses</span>
+                    <span class="stat-value">{{ courses|length }}</span>
+                </div>
+
+                <div class="stat">
+                    <span class="stat-label">Assignments</span>
+                    <span class="stat-value">{{ assignments|length }}</span>
+                </div>
+
+            </div>
+
+        </section>
+
+        <div class="grid">
+
+            <section class="card">
+
+                <div class="card-header">
+                    <div>
+                        <h2 class="card-title">Add a course</h2>
+                        <p class="card-subtitle">
+                            Create a course to start organising your work.
+                        </p>
+                    </div>
+                </div>
+
+                <form action="/courses" method="POST" class="form-grid">
+
+                    <div class="field">
+                        <label for="name">Course name</label>
+                        <input
+                            id="name"
+                            name="name"
+                            type="text"
+                            placeholder="Artificial Intelligence"
+                            required
+                        >
+                    </div>
+
+                    <div class="field">
+                        <label for="code">Course code</label>
+                        <input
+                            id="code"
+                            name="code"
+                            type="text"
+                            placeholder="CS301"
+                            required
+                        >
+                    </div>
+
+                    <div>
+                        <button class="btn-primary" type="submit">
+                            Add course
+                        </button>
+                    </div>
+
+                </form>
+
+            </section>
+
+            <section class="card">
+
+                <div class="card-header">
+                    <div>
+                        <h2 class="card-title">Add an assignment</h2>
+                        <p class="card-subtitle">
+                            Link coursework to one of your courses.
+                        </p>
+                    </div>
+                </div>
+
+                {% if courses %}
+
+                    <form action="/assignments" method="POST" class="form-grid">
+
+                        <div class="field">
+                            <label for="title">Assignment title</label>
                             <input
+                                id="title"
+                                name="title"
                                 type="text"
-                                name="name"
-                                value="{{ course['name'] }}"
+                                placeholder="Database report"
                                 required
                             >
+                        </div>
 
-                            <input
-                                type="text"
-                                name="code"
-                                value="{{ course['code'] }}"
-                                required
+                        <div class="form-row">
+
+                            <div class="field">
+                                <label for="due_date">Due date</label>
+                                <input
+                                    id="due_date"
+                                    name="due_date"
+                                    type="date"
+                                    required
+                                >
+                            </div>
+
+                            <div class="field">
+                                <label for="priority">Priority</label>
+
+                                <select id="priority" name="priority" required>
+                                    <option value="Low">Low</option>
+                                    <option value="Medium">Medium</option>
+                                    <option value="High">High</option>
+                                </select>
+                            </div>
+
+                        </div>
+
+                        <div class="field">
+                            <label for="course_id">Course</label>
+
+                            <select id="course_id" name="course_id" required>
+                                {% for course in courses %}
+                                    <option value="{{ course['id'] }}">
+                                        {{ course['name'] }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div>
+                            <button class="btn-primary" type="submit">
+                                Add assignment
+                            </button>
+                        </div>
+
+                    </form>
+
+                {% else %}
+
+                    <div class="empty">
+                        Add a course first before creating an assignment.
+                    </div>
+
+                {% endif %}
+
+            </section>
+
+            <section class="card full">
+
+                <div class="card-header">
+                    <div>
+                        <h2 class="card-title">Calendar</h2>
+                        <p class="card-subtitle">
+                            See your assignments by due date.
+                        </p>
+                    </div>
+
+                    <div class="calendar-controls">
+                        <button
+                            class="calendar-nav"
+                            type="button"
+                            id="previousMonth"
+                        >
+                            ‹
+                        </button>
+
+                        <div
+                            class="calendar-title"
+                            id="calendarTitle"
+                        ></div>
+
+                        <button
+                            class="calendar-nav"
+                            type="button"
+                            id="nextMonth"
+                        >
+                            ›
+                        </button>
+                    </div>
+                </div>
+
+                <div class="calendar-weekdays">
+                    <div class="weekday">Mon</div>
+                    <div class="weekday">Tue</div>
+                    <div class="weekday">Wed</div>
+                    <div class="weekday">Thu</div>
+                    <div class="weekday">Fri</div>
+                    <div class="weekday">Sat</div>
+                    <div class="weekday">Sun</div>
+                </div>
+
+                <div
+                    class="calendar-grid"
+                    id="calendarGrid"
+                ></div>
+
+            </section>
+
+            <section class="card">
+
+                <div class="card-header">
+                    <div>
+                        <h2 class="card-title">My courses</h2>
+                        <p class="card-subtitle">
+                            Edit or remove your courses.
+                        </p>
+                    </div>
+                </div>
+
+                {% if courses %}
+
+                    <ul class="course-list">
+
+                        {% for course in courses %}
+
+                            <li class="course-item">
+
+                                <form
+                                    action="/courses/{{ course['id'] }}/edit"
+                                    method="POST"
+                                    class="course-edit"
+                                >
+
+                                    <input
+                                        type="text"
+                                        name="name"
+                                        value="{{ course['name'] }}"
+                                        required
+                                    >
+
+                                    <input
+                                        type="text"
+                                        name="code"
+                                        value="{{ course['code'] }}"
+                                        required
+                                    >
+
+                                    <button
+                                        type="submit"
+                                        class="btn-secondary"
+                                    >
+                                        Save
+                                    </button>
+
+                                </form>
+
+                                <div class="course-actions">
+
+                                    <form
+                                        action="/courses/{{ course['id'] }}/delete"
+                                        method="POST"
+                                    >
+
+                                        <button
+                                            type="submit"
+                                            class="btn-danger"
+                                        >
+                                            Delete course
+                                        </button>
+
+                                    </form>
+
+                                </div>
+
+                            </li>
+
+                        {% endfor %}
+
+                    </ul>
+
+                {% else %}
+
+                    <div class="empty">
+                        No courses yet.
+                    </div>
+
+                {% endif %}
+
+            </section>
+
+            <section class="card">
+
+                <div class="card-header">
+                    <div>
+                        <h2 class="card-title">My assignments</h2>
+                        <p class="card-subtitle">
+                            Coursework ordered by due date.
+                        </p>
+                    </div>
+                </div>
+
+                {% if assignments %}
+
+                    <ul class="assignment-list">
+
+                        {% for assignment in assignments %}
+
+                            <li
+                                class="assignment-item
+                                {% if assignment['completed'] %}
+                                    assignment-complete
+                                {% endif %}"
                             >
 
-                            <button type="submit">Save</button>
-                        </form>
-
-                        <form
-                            action="/courses/{{ course['id'] }}/delete"
-                            method="POST"
-                        >
-                            <button type="submit">Delete</button>
-                        </form>
-                    </li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <p>No courses added yet.</p>
-        {% endif %}
-    </section>
-
-    <section>
-        <h2>Add an assignment</h2>
-
-        {% if courses %}
-            <form action="/assignments" method="POST">
-                <label for="title">Assignment:</label>
-                <input type="text" id="title" name="title" required>
-
-                <label for="due_date">Due date:</label>
-                <input type="date" id="due_date" name="due_date" required>
-
-                <label for="priority">Priority:</label>
-                <select id="priority" name="priority" required>
-                    <option value="Low">Low</option>
-                    <option value="Medium">Medium</option>
-                    <option value="High">High</option>
-                </select>
-
-                <label for="course_id">Course:</label>
-                <select id="course_id" name="course_id" required>
-                    {% for course in courses %}
-                        <option value="{{ course['id'] }}">
-                            {{ course['name'] }}
-                        </option>
-                    {% endfor %}
-                </select>
-
-                <button type="submit">Add assignment</button>
-            </form>
-        {% else %}
-            <p>Add a course before creating an assignment.</p>
-        {% endif %}
-    </section>
-
-    <section>
-        <h2>My assignments</h2>
-
-        {% if assignments %}
-            <ul>
-                {% for assignment in assignments %}
-                    <li class="assignment-row">
-
-                        {% if assignment["completed"] %}
-                            <span class="assignment-complete">
-                                {{ assignment["title"] }}
-                                - {{ assignment["course_name"] }}
-                                - Due: {{ assignment["due_date"] }}
-                                - Priority: {{ assignment["priority"] }}
-                            </span>
-
-                        {% else %}
-                            {% if assignment["overdue"] %}
-                                <span class="assignment-overdue">
+                                <p class="assignment-title">
                                     {{ assignment["title"] }}
-                                    - {{ assignment["course_name"] }}
-                                    - Due: {{ assignment["due_date"] }}
-                                    - Priority: {{ assignment["priority"] }}
-                                    - OVERDUE
-                                </span>
-                            {% else %}
-                                <span>
-                                    {{ assignment["title"] }}
-                                    - {{ assignment["course_name"] }}
-                                    - Due: {{ assignment["due_date"] }}
-                                    - Priority: {{ assignment["priority"] }}
-                                </span>
-                            {% endif %}
-                        {% endif %}
+                                </p>
 
-                        <form
-                            action="/assignments/{{ assignment['id'] }}/complete"
-                            method="POST"
-                        >
-                            {% if assignment["completed"] %}
-                                <button type="submit">Mark incomplete</button>
-                            {% else %}
-                                <button type="submit">Mark complete</button>
-                            {% endif %}
-                        </form>
+                                <p class="assignment-course">
+                                    {{ assignment["course_name"] }}
+                                </p>
 
-                        <form
-                            action="/assignments/{{ assignment['id'] }}/delete"
-                            method="POST"
-                        >
-                            <button type="submit">Delete</button>
-                        </form>
+                                <div class="assignment-meta">
 
-                    </li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <p>No assignments added yet.</p>
-        {% endif %}
-    </section>
+                                    <span class="badge">
+                                        Due {{ assignment["due_date"] }}
+                                    </span>
+
+                                    {% if assignment["priority"] == "High" %}
+
+                                        <span class="badge priority-high">
+                                            High priority
+                                        </span>
+
+                                    {% elif assignment["priority"] == "Medium" %}
+
+                                        <span class="badge priority-medium">
+                                            Medium priority
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="badge priority-low">
+                                            Low priority
+                                        </span>
+
+                                    {% endif %}
+
+                                    {% if assignment["overdue"] %}
+
+                                        <span class="badge overdue">
+                                            Overdue
+                                        </span>
+
+                                    {% endif %}
+
+                                    {% if assignment["completed"] %}
+
+                                        <span class="badge completed">
+                                            Completed
+                                        </span>
+
+                                    {% endif %}
+
+                                </div>
+
+                                <div class="assignment-actions">
+
+                                    <form
+                                        action="/assignments/{{ assignment['id'] }}/complete"
+                                        method="POST"
+                                    >
+
+                                        {% if assignment["completed"] %}
+
+                                            <button
+                                                type="submit"
+                                                class="btn-secondary"
+                                            >
+                                                Mark incomplete
+                                            </button>
+
+                                        {% else %}
+
+                                            <button
+                                                type="submit"
+                                                class="btn-secondary"
+                                            >
+                                                Mark complete
+                                            </button>
+
+                                        {% endif %}
+
+                                    </form>
+
+                                    <form
+                                        action="/assignments/{{ assignment['id'] }}/delete"
+                                        method="POST"
+                                    >
+
+                                        <button
+                                            type="submit"
+                                            class="btn-danger"
+                                        >
+                                            Delete
+                                        </button>
+
+                                    </form>
+
+                                </div>
+
+                            </li>
+
+                        {% endfor %}
+
+                    </ul>
+
+                {% else %}
+
+                    <div class="empty">
+                        No assignments yet.
+                    </div>
+
+                {% endif %}
+
+            </section>
+
+        </div>
+
+    </main>
+
+</div>
+
+<script>
+    const assignments = {{ calendar_assignments | tojson }};
+
+    let calendarDate = new Date();
+
+    const calendarGrid = document.getElementById("calendarGrid");
+    const calendarTitle = document.getElementById("calendarTitle");
+
+    function renderCalendar() {
+        calendarGrid.innerHTML = "";
+
+        const year = calendarDate.getFullYear();
+        const month = calendarDate.getMonth();
+
+        calendarTitle.textContent = calendarDate.toLocaleDateString(
+            "en-US",
+            {
+                month: "long",
+                year: "numeric"
+            }
+        );
+
+        const firstDay = new Date(year, month, 1);
+
+        let startingDay = firstDay.getDay();
+
+        if (startingDay === 0) {
+            startingDay = 7;
+        }
+
+        const gridStart = new Date(
+            year,
+            month,
+            1 - (startingDay - 1)
+        );
+
+        const today = new Date();
+
+        for (let i = 0; i < 42; i++) {
+            const dayDate = new Date(gridStart);
+
+            dayDate.setDate(
+                gridStart.getDate() + i
+            );
+
+            const yearValue = dayDate.getFullYear();
+
+            const monthValue = String(
+                dayDate.getMonth() + 1
+            ).padStart(2, "0");
+
+            const dayValue = String(
+                dayDate.getDate()
+            ).padStart(2, "0");
+
+            const dateString =
+                `${yearValue}-${monthValue}-${dayValue}`;
+
+            const day = document.createElement("div");
+            day.classList.add("calendar-day");
+
+            if (dayDate.getMonth() !== month) {
+                day.classList.add("outside");
+            }
+
+            if (
+                dayDate.getFullYear() === today.getFullYear() &&
+                dayDate.getMonth() === today.getMonth() &&
+                dayDate.getDate() === today.getDate()
+            ) {
+                day.classList.add("today");
+            }
+
+            const number = document.createElement("span");
+            number.classList.add("day-number");
+            number.textContent = dayDate.getDate();
+
+            day.appendChild(number);
+
+            const events = document.createElement("div");
+            events.classList.add("calendar-events");
+
+            assignments
+                .filter(
+                    assignment =>
+                        assignment.due_date === dateString
+                )
+                .forEach(assignment => {
+                    const event = document.createElement("div");
+
+                    event.classList.add("calendar-event");
+
+                    if (assignment.completed) {
+                        event.classList.add("event-complete");
+                    } else if (assignment.overdue) {
+                        event.classList.add("event-overdue");
+                    }
+
+                    event.textContent =
+                        `${assignment.title} · ${assignment.course_name}`;
+
+                    events.appendChild(event);
+                });
+
+            day.appendChild(events);
+
+            calendarGrid.appendChild(day);
+        }
+    }
+
+    document
+        .getElementById("previousMonth")
+        .addEventListener("click", () => {
+            calendarDate.setMonth(
+                calendarDate.getMonth() - 1
+            );
+
+            renderCalendar();
+        });
+
+    document
+        .getElementById("nextMonth")
+        .addEventListener("click", () => {
+            calendarDate.setMonth(
+                calendarDate.getMonth() + 1
+            );
+
+            renderCalendar();
+        });
+
+    renderCalendar();
+</script>
+
 </body>
 </html>

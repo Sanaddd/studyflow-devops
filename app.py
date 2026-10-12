@@ -28,11 +28,22 @@ def home():
     courses = get_all_courses()
     assignments = get_all_assignments()
 
+    calendar_assignments = [
+    {
+        "title": assignment["title"],
+        "due_date": assignment["due_date"],
+        "completed": assignment["completed"],
+        "overdue": assignment["overdue"],
+        "course_name": assignment["course_name"],
+    }
+    for assignment in assignments
+]
     return render_template(
-        "index.html",
-        courses=courses,
-        assignments=assignments,
-    )
+    "index.html",
+    courses=courses,
+    assignments=assignments,
+    calendar_assignments=calendar_assignments,
+)
 
 
 @app.route("/courses", methods=["POST"])
