@@ -47,3 +47,15 @@ Decision: I focused the tests on the course and assignment service functions and
 Alternatives considered: I considered adding route and browser-level tests as well, but I decided the service functions were more important because they contain the main business logic and database operations.
 
 Consequences: The most important backend logic is covered by automated tests and the core files currently have 100% coverage. The web interface itself has less automated testing and is checked manually.
+
+## 5. Keep the app single-user and leave out authentication
+Date: 2026-10-12
+Status: Decided
+
+Context: Throughout the project I kept StudyFlow focused on the two main feature domains: courses and assignments. Adding authentication would have introduced extra database tables, login routes, password handling, and user-specific data without improving the main purpose of this version.
+
+Decision: I kept StudyFlow as a single-user planner and did not build login or user accounts.
+
+Alternatives considered: I considered adding basic user accounts so different students could have separate planners, but I decided this would add unnecessary scope and complexity for the first version.
+
+Consequences: The application stays smaller and easier to understand, test, and maintain. If StudyFlow were developed further for multiple users, authentication and user-specific data ownership would need to be added.
