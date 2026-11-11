@@ -59,3 +59,15 @@ Decision: I kept StudyFlow as a single-user planner and did not build login or u
 Alternatives considered: I considered adding basic user accounts so different students could have separate planners, but I decided this would add unnecessary scope and complexity for the first version.
 
 Consequences: The application stays smaller and easier to understand, test, and maintain. If StudyFlow were developed further for multiple users, authentication and user-specific data ownership would need to be added.
+
+## 6. Split StudyFlow into a courses service and an assignments service
+Date: 2026-11-11
+Status: Decided
+
+Context: Assignment 2 requires one service per feature domain, each with its own container and its own data, cut along the seam defined in ADR-2.
+
+Decision: I split the app into services/courses and services/assignments, each with its own Flask JSON API, database and Dockerfile. Assignments keep course_id as a plain id; the JOIN on courses was removed because that table now belongs to the courses service. ADR-2's seam held without moving.
+
+Alternatives considered: I considered keeping one shared database with both tables, but rejected it because the assignment requires a database per service and a shared database would keep the two domains coupled.
+
+Consequences: The services can be built, tested and deployed separately. Assignments can no longer show the course name by themselves, so that now needs an HTTP call to the courses service, and the database no longer guarantees that a course_id points to a real course.
