@@ -3,7 +3,7 @@ import sqlite3
 
 
 DATA_DIR = os.environ.get("DATA_DIR", "data")
-DATABASE_PATH = os.path.join(DATA_DIR, "studyflow.db")
+DATABASE_PATH = os.path.join(DATA_DIR, "courses.db")
 
 
 def get_connection():
@@ -28,19 +28,5 @@ def init_db():
         """
     )
 
-    connection.execute(
-        """
-        CREATE TABLE IF NOT EXISTS assignments (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
-            due_date TEXT NOT NULL,
-            priority TEXT NOT NULL,
-            completed INTEGER NOT NULL DEFAULT 0,
-            course_id INTEGER NOT NULL,
-            FOREIGN KEY (course_id) REFERENCES courses (id)
-        )
-        """
-    )
-    
     connection.commit()
     connection.close()
