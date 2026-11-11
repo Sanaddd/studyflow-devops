@@ -2,7 +2,6 @@ import os
 import tempfile
 
 import assignment_service
-import course_service
 import database
 
 
@@ -18,16 +17,16 @@ def setup_module():
 def setup_function():
     connection = database.get_connection()
     connection.execute("DELETE FROM assignments")
-    connection.execute("DELETE FROM courses")
     connection.commit()
     connection.close()
 
-    course_service.add_course("Artificial Intelligence", "CS301")
+
+# The course lives in the courses service now; assignments only store its id.
+COURSE_ID = 1
 
 
 def test_add_and_get_assignment():
-    courses = course_service.get_all_courses()
-    course_id = courses[0]["id"]
+    course_id = COURSE_ID
 
     assignment_service.add_assignment(
         "AI Report",
@@ -41,12 +40,11 @@ def test_add_and_get_assignment():
     assert len(assignments) == 1
     assert assignments[0]["title"] == "AI Report"
     assert assignments[0]["priority"] == "High"
-    assert assignments[0]["course_name"] == "Artificial Intelligence"
+    assert assignments[0]["course_id"] == COURSE_ID
 
 
 def test_toggle_assignment_complete():
-    courses = course_service.get_all_courses()
-    course_id = courses[0]["id"]
+    course_id = COURSE_ID
 
     assignment_service.add_assignment(
         "AI Report",
@@ -66,8 +64,7 @@ def test_toggle_assignment_complete():
 
 
 def test_delete_assignment():
-    courses = course_service.get_all_courses()
-    course_id = courses[0]["id"]
+    course_id = COURSE_ID
 
     assignment_service.add_assignment(
         "AI Report",
@@ -87,8 +84,7 @@ def test_delete_assignment():
 
 
 def test_overdue_assignment():
-    courses = course_service.get_all_courses()
-    course_id = courses[0]["id"]
+    course_id = COURSE_ID
 
     assignment_service.add_assignment(
         "Old Assignment",

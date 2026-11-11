@@ -1,0 +1,5 @@
+# Keep the build context to what the Dockerfile actually copies
+*
+!requirements.txt
+!*.py
+tests/

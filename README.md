@@ -30,70 +30,41 @@ For assignments, the user should be able to add an assignment, link it to a cour
 
 The basic Flask app is set up and running locally.
 
+## Project structure (Assignment 2)
+
+StudyFlow is being split into two services along the seam from ADR-2:
+
+    services/
+      courses/        Courses domain: own Flask app, own database, own Dockerfile
+      assignments/    Assignments domain: own Flask app, own database, own Dockerfile
+    ui/               Front end (being converted to a static site)
+
+Each service has its own `requirements.txt` (runtime, pinned) and
+`requirements-dev.txt` (tests). Assignments store only a `course_id`; course
+details belong to the courses service.
+
+## Running a single service
+
+    cd services/courses            # or services/assignments
+    python3 -m venv venv && source venv/bin/activate
+    pip install -r requirements-dev.txt
+    python app.py                  # listens on PORT, default 8000
+
+## Running a service in Docker
+
+    docker build -t studyflow-courses services/courses
+    docker run --rm -p 8001:8000 studyflow-courses
+
 ## Testing
 
-The project uses pytest and pytest-cov for automated testing.
-
-To run the tests:
+From inside a service folder:
 
     python -m pytest -v
-
-To run the tests with coverage:
-
-    python -m pytest --cov=course_service --cov=assignment_service --cov=database --cov-report=term-missing
-
-Current result:
-
-- 7 tests passed
-- 100% coverage across course_service.py, assignment_service.py, and database.py
-
-## Running the project
-
-Create a virtual environment:
-
-    python3 -m venv venv
-
-Activate it on macOS/Linux:
-
-    source venv/bin/activate
-
-Install the dependencies:
-
-    pip install -r requirements.txt
-
-Start the application:
-
-    python app.py
-
-The application uses port 5000 by default.
-
-A different port can be supplied using the PORT environment variable:
-
-    PORT=5001 python app.py
-
-StudyFlow binds to 0.0.0.0 so it can later run correctly inside a container.
-
-## Database
-
-StudyFlow uses SQLite for both courses and assignments.
-
-By default, the database is stored at:
-
-    data/studyflow.db
-
-The database directory can be changed using the DATA_DIR environment variable.
-
-For example:
-
-    DATA_DIR=my_data python app.py
-
-The database and required tables are created automatically when the application starts.
+    python -m pytest --cov=. --cov-report=term-missing
 
 ## Configuration
 
-The application uses these environment variables:
+Each service reads:
 
-- PORT - port used by the Flask server. Default: 5000
-- DATA_DIR - directory used to store the SQLite database. Default: data
-
-The app does not require an external database or any interactive setup before starting.
+- PORT - port the service listens on. Default: 8000
+- DATA_DIR - directory for the service's database file. Default: data

@@ -8,16 +8,9 @@ def get_all_assignments():
 
     assignments = connection.execute(
         """
-        SELECT assignments.id,
-               assignments.title,
-               assignments.due_date,
-               assignments.priority,
-               assignments.completed,
-               assignments.course_id,
-               courses.name AS course_name
+        SELECT id, title, due_date, priority, completed, course_id
         FROM assignments
-        JOIN courses ON assignments.course_id = courses.id
-        ORDER BY assignments.due_date
+        ORDER BY due_date
         """
     ).fetchall()
 
