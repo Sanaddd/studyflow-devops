@@ -17,14 +17,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Application code, file by file (no COPY . .)
 COPY app.py database.py assignment_service.py ./
-
-# Writable data directory owned by the app user
-RUN mkdir -p /app/data && chown appuser:appuser /app/data
+COPY migrations/ ./migrations/
 
 USER appuser
 
-ENV PORT=8000 \
-    DATA_DIR=/app/data
+# DATABASE_URL is not set here: it holds a password and is given at runtime
+ENV PORT=8000
 
 EXPOSE 8000
 

@@ -4,12 +4,13 @@ import time
 from flask import Flask, g, jsonify, request
 
 from course_service import add_course, delete_course, get_all_courses, update_course
-from database import check_db, init_db
+from database import check_db, run_migrations
 
 
 app = Flask(__name__)
 
-init_db()
+# Bring the schema up to date before serving any request
+run_migrations()
 
 
 # Version of the running code: the commit SHA, set by the pipeline. "dev" when run locally.

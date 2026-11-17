@@ -1,17 +1,13 @@
-import os
-import tempfile
-
-import database
+import app  # noqa: F401  (importing the app applies the migrations)
 import course_service
+import database
 
 
 def setup_module():
-    temp_dir = tempfile.mkdtemp()
-
-    database.DATA_DIR = temp_dir
-    database.DATABASE_PATH = os.path.join(temp_dir, "test.db")
-
-    database.init_db()
+    connection = database.connect()
+    connection.cursor().execute("DELETE FROM courses")
+    connection.commit()
+    connection.close()
 
 
 def test_add_and_get_course():

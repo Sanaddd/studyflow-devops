@@ -24,8 +24,24 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      # Tests run against a throwaway SQL Server container, never Azure SQL.
+      # Its password is generated for this run only, so no secret is stored in the repo.
+      - name: Start SQL Server
+        run: |
+          SA_PASSWORD="Ci_$(openssl rand -hex 12)_1a"
+          echo "::add-mask::$SA_PASSWORD"
+          docker run -d --name sqlserver -e ACCEPT_EULA=Y -e "MSSQL_SA_PASSWORD=$SA_PASSWORD" \
+            -p 1433:1433 mcr.microsoft.com/mssql/server:2022-latest
+          echo "TEST_SQLSERVER_URL=mssql://sa:$SA_PASSWORD@localhost:1433/master" >> "$GITHUB_ENV"
       - name: Install dependencies
         run: pip install -r requirements-dev.txt
+      - name: Wait for SQL Server
+        run: |
+          for attempt in $(seq 1 30); do
+            python -c "import os, pymssql; from urllib.parse import urlparse; u = urlparse(os.environ['TEST_SQLSERVER_URL']); pymssql.connect(server=u.hostname, port=u.port, user=u.username, password=u.password).close()" && exit 0
+            echo "SQL Server not ready ($attempt/30)"; sleep 2
+          done
+          exit 1
       - name: Run tests
         run: python -m pytest -v
 

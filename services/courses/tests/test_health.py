@@ -26,7 +26,7 @@ def test_check_db_false_when_database_unreachable(monkeypatch):
     def broken_connection():
         raise OSError("database unavailable")
 
-    monkeypatch.setattr(database, "get_connection", broken_connection)
+    monkeypatch.setattr(database, "connect", broken_connection)
 
     assert database.check_db() is False
 
