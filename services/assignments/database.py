@@ -35,3 +35,24 @@ def init_db():
 
     connection.commit()
     connection.close()
+
+
+def check_db():
+    """Return True if this service can read from and write to its own database.
+
+    Used by GET /health. The write is rolled back, so the check leaves no data behind.
+    """
+    try:
+        connection = get_connection()
+        try:
+            connection.execute(
+                "CREATE TABLE IF NOT EXISTS health_check (id INTEGER PRIMARY KEY, checked_at TEXT)"
+            )
+            connection.execute("INSERT INTO health_check (checked_at) VALUES (datetime('now'))")
+            connection.execute("SELECT COUNT(*) FROM health_check").fetchone()
+            connection.rollback()
+        finally:
+            connection.close()
+        return True
+    except Exception:
+        return False

@@ -29,4 +29,4 @@ ENV PORT=8000 \
 EXPOSE 8000
 
 # Shell form via sh -c so ${PORT} is expanded at runtime; exec makes gunicorn PID 1
-CMD ["sh", "-c", "exec gunicorn --bind 0.0.0.0:${PORT} --workers 2 --access-logfile - app:app"]
+CMD ["sh", "-c", "exec gunicorn --bind 0.0.0.0:${PORT} --workers 2 app:app"]
