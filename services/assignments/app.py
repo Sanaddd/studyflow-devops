@@ -1,6 +1,7 @@
 import os
+import time
 
-from flask import Flask, jsonify, request
+from flask import Flask, g, jsonify, request
 
 from assignment_service import (
     add_assignment,
@@ -8,12 +9,38 @@ from assignment_service import (
     get_all_assignments,
     toggle_assignment_complete,
 )
-from database import init_db
+from database import check_db, run_migrations
 
 
 app = Flask(__name__)
 
-init_db()
+# Bring the schema up to date before serving any request
+run_migrations()
+
+
+# Version of the running code: the commit SHA, set by the pipeline. "dev" when run locally.
+VERSION = os.environ.get("GIT_SHA", "dev")
+
+
+@app.before_request
+def start_timer():
+    g.start_time = time.perf_counter()
+
+
+@app.after_request
+def log_request(response):
+    # One line per request on stdout: method, path, status, duration
+    duration_ms = (time.perf_counter() - g.get("start_time", time.perf_counter())) * 1000
+    print(f"{request.method} {request.path} {response.status_code} {duration_ms:.1f}ms", flush=True)
+    return response
+
+
+@app.get("/health")
+def health():
+    # Reports only this service's own state, never the other service's
+    db_ok = check_db()
+    body = {"status": "ok" if db_ok else "error", "db": "ok" if db_ok else "error", "version": VERSION}
+    return jsonify(body), 200 if db_ok else 503
 
 
 @app.get("/assignments")

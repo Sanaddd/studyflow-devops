@@ -5,28 +5,30 @@ from database import get_connection
 
 def get_all_assignments():
     connection = get_connection()
+    try:
+        cursor = connection.cursor(as_dict=True)
+        cursor.execute(
+            """
+            SELECT id, title, due_date, priority, completed, course_id
+            FROM assignments
+            ORDER BY due_date
+            """
+        )
+        rows = cursor.fetchall()
+    finally:
+        connection.close()
 
-    assignments = connection.execute(
-        """
-        SELECT id, title, due_date, priority, completed, course_id
-        FROM assignments
-        ORDER BY due_date
-        """
-    ).fetchall()
-
-    connection.close()
-
-    today = date.today().isoformat()
+    today = date.today()
 
     assignment_list = []
 
-    for assignment in assignments:
-        assignment_data = dict(assignment)
+    for row in rows:
+        assignment_data = dict(row)
 
-        assignment_data["overdue"] = (
-            assignment["due_date"] < today
-            and assignment["completed"] == 0
-        )
+        # SQL Server returns DATE as a date and BIT as a bool
+        assignment_data["overdue"] = row["due_date"] < today and not row["completed"]
+        assignment_data["due_date"] = row["due_date"].isoformat()
+        assignment_data["completed"] = bool(row["completed"])
 
         assignment_list.append(assignment_data)
 
@@ -35,44 +37,42 @@ def get_all_assignments():
 
 def add_assignment(title, due_date, priority, course_id):
     connection = get_connection()
+    try:
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            INSERT INTO assignments (title, due_date, priority, course_id)
+            VALUES (%s, %s, %s, %s)
+            """,
+            (title, due_date, priority, course_id),
+        )
+        connection.commit()
+    finally:
+        connection.close()
 
-    connection.execute(
-        """
-        INSERT INTO assignments (title, due_date, priority, course_id)
-        VALUES (?, ?, ?, ?)
-        """,
-        (title, due_date, priority, course_id),
-    )
-
-    connection.commit()
-    connection.close()
 
 def toggle_assignment_complete(assignment_id):
     connection = get_connection()
-
-    connection.execute(
-        """
-        UPDATE assignments
-        SET completed = CASE
-            WHEN completed = 0 THEN 1
-            ELSE 0
-        END
-        WHERE id = ?
-        """,
-        (assignment_id,),
-    )
-
-    connection.commit()
-    connection.close()
+    try:
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            UPDATE assignments
+            SET completed = CASE WHEN completed = 0 THEN 1 ELSE 0 END
+            WHERE id = %s
+            """,
+            (assignment_id,),
+        )
+        connection.commit()
+    finally:
+        connection.close()
 
 
 def delete_assignment(assignment_id):
     connection = get_connection()
-
-    connection.execute(
-        "DELETE FROM assignments WHERE id = ?",
-        (assignment_id,),
-    )
-
-    connection.commit()
-    connection.close()
+    try:
+        cursor = connection.cursor()
+        cursor.execute("DELETE FROM assignments WHERE id = %s", (assignment_id,))
+        connection.commit()
+    finally:
+        connection.close()

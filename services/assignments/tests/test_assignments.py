@@ -1,22 +1,11 @@
-import os
-import tempfile
-
+import app  # noqa: F401  (importing the app applies the migrations)
 import assignment_service
 import database
 
 
-def setup_module():
-    temp_dir = tempfile.mkdtemp()
-
-    database.DATA_DIR = temp_dir
-    database.DATABASE_PATH = os.path.join(temp_dir, "test.db")
-
-    database.init_db()
-
-
 def setup_function():
-    connection = database.get_connection()
-    connection.execute("DELETE FROM assignments")
+    connection = database.connect()
+    connection.cursor().execute("DELETE FROM assignments")
     connection.commit()
     connection.close()
 
@@ -60,7 +49,7 @@ def test_toggle_assignment_complete():
 
     updated_assignments = assignment_service.get_all_assignments()
 
-    assert updated_assignments[0]["completed"] == 1
+    assert updated_assignments[0]["completed"] is True
 
 
 def test_delete_assignment():

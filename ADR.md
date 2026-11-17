@@ -71,3 +71,15 @@ Decision: I split the app into services/courses and services/assignments, each w
 Alternatives considered: I considered keeping one shared database with both tables, but rejected it because the assignment requires a database per service and a shared database would keep the two domains coupled.
 
 Consequences: The services can be built, tested and deployed separately. Assignments can no longer show the course name by themselves, so that now needs an HTTP call to the courses service, and the database no longer guarantees that a course_id points to a real course.
+
+## 7. One SQL Server database per service with versioned migrations
+Date: 2026-11-17
+Status: Decided
+
+Context: Assignment 2 replaces SQLite with SQL Server, gives each service its own database and login, and requires schema changes to keep existing data instead of recreating tables.
+
+Decision: Each service has its own database and a migrations folder of numbered SQL files, applied in order at startup by a small runner that records each one in a schema_migrations table, so each runs exactly once. All pending migrations run in one transaction holding an exclusive lock, so two processes starting together never apply the same one. The foreign key from assignments.course_id to courses was dropped because the tables now live in different databases.
+
+Alternatives considered: I considered Alembic, but rejected it because a small runner over plain SQL files is easier for me to read and explain, and the project only needs forward migrations.
+
+Consequences: The database no longer stops an assignment from pointing to a course that does not exist; this has to be handled in code and in how the UI shows a missing course. Migrations are forward-only: a bad migration is fixed with a new migration, never by editing an applied one, and if data is damaged the Azure SQL database is restored from its automatic point-in-time backup.

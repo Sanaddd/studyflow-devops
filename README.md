@@ -9,7 +9,7 @@ The project has two main parts:
 1. Courses
 2. Assignments
 
-Both parts will store their data in SQLite.
+Each part runs as its own service with its own SQL Server database.
 
 ## What I plan to build
 
@@ -21,7 +21,7 @@ For assignments, the user should be able to add an assignment, link it to a cour
 
 - Python
 - Flask
-- SQLite
+- SQL Server (pymssql)
 - HTML/CSS
 - pytest
 - pytest-cov
@@ -45,20 +45,40 @@ details belong to the courses service.
 
 ## Running a single service
 
+Each service needs a SQL Server database, given as `DATABASE_URL`:
+
     cd services/courses            # or services/assignments
     python3 -m venv venv && source venv/bin/activate
     pip install -r requirements-dev.txt
+    export DATABASE_URL="mssql://<user>:<password>@localhost:1433/<database>"
     python app.py                  # listens on PORT, default 8000
+
+On startup the service applies any pending migrations from its `migrations/` folder.
 
 ## Running a service in Docker
 
     docker build -t studyflow-courses services/courses
-    docker run --rm -p 8001:8000 studyflow-courses
+    docker run --rm -p 8001:8000 -e DATABASE_URL="mssql://<user>:<password>@host.docker.internal:1433/<database>" studyflow-courses
+
+## Running the whole system
+
+    cp .env.example .env        # then replace the passwords
+    docker compose up --build
+
+This starts SQL Server, creates one database and login per service (`db/init.sql`), then starts both services and the UI:
+
+- courses: http://localhost:8001/courses
+- assignments: http://localhost:8002/assignments
+- UI: http://localhost:8080
+
+Data is kept between restarts. `docker compose down -v` deletes it.
 
 ## Testing
 
+Tests run against a throwaway SQL Server. Each run creates its own database and drops it at the end.
 From inside a service folder:
 
+    export TEST_SQLSERVER_URL="mssql://sa:<password>@localhost:1433/master"
     python -m pytest -v
     python -m pytest --cov=. --cov-report=term-missing
 
@@ -67,4 +87,10 @@ From inside a service folder:
 Each service reads:
 
 - PORT - port the service listens on. Default: 8000
-- DATA_DIR - directory for the service's database file. Default: data
+- DATABASE_URL - connection string of the service's own database. Secret, no default
+- GIT_SHA - commit the image was built from, shown by /health. Default: dev
+
+## Health and logs
+
+- GET /health returns 200 `{"status": "ok", "db": "ok", "version": "<sha>"}` when the service can read and write its own database, and 503 otherwise.
+- Every request writes one line to stdout: method, path, status and duration.

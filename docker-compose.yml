@@ -1,0 +1,73 @@
+# Whole StudyFlow system locally: docker compose up --build
+# Needs a .env file (copy .env.example). Reset all data with: docker compose down -v
+name: studyflow
+
+services:
+  # One SQL Server holding one database per service
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    platform: linux/amd64 # no arm64 image: Docker Desktop on Apple Silicon needs Rosetta enabled
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${SA_PASSWORD:?set SA_PASSWORD in .env}
+    volumes:
+      - sqldata:/var/opt/mssql # named volume: data survives restarts and rebuilds
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  # One-off job: creates the databases and logins (db/init.sql), then exits
+  db-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    platform: linux/amd64
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    restart: "no"
+    environment:
+      SA_PASSWORD: ${SA_PASSWORD}
+      COURSES_DB_PASSWORD: ${COURSES_DB_PASSWORD:?set COURSES_DB_PASSWORD in .env}
+      ASSIGNMENTS_DB_PASSWORD: ${ASSIGNMENTS_DB_PASSWORD:?set ASSIGNMENTS_DB_PASSWORD in .env}
+    volumes:
+      - ./db/init.sql:/init.sql:ro
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - >-
+        /opt/mssql-tools18/bin/sqlcmd -C -b -S sqlserver -U sa -P "$$SA_PASSWORD" -i /init.sql
+        -v COURSES_DB_PASSWORD="$$COURSES_DB_PASSWORD" ASSIGNMENTS_DB_PASSWORD="$$ASSIGNMENTS_DB_PASSWORD"
+
+  courses:
+    build: ./services/courses
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: mssql://courses_user:${COURSES_DB_PASSWORD}@sqlserver:1433/courses
+      GIT_SHA: ${GIT_SHA:-dev}
+    ports:
+      - "8001:8000"
+
+  assignments:
+    build: ./services/assignments
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: mssql://assignments_user:${ASSIGNMENTS_DB_PASSWORD}@sqlserver:1433/assignments
+      GIT_SHA: ${GIT_SHA:-dev}
+    ports:
+      - "8002:8000"
+
+  # Stock web server with the ui/ folder mounted: not a service container (no Dockerfile)
+  ui:
+    image: nginx:alpine
+    volumes:
+      - ./ui:/usr/share/nginx/html:ro
+    ports:
+      - "8080:80"
+
+volumes:
+  sqldata:

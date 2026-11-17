@@ -17,16 +17,14 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Application code, file by file (no COPY . .)
 COPY app.py database.py course_service.py ./
-
-# Writable data directory owned by the app user
-RUN mkdir -p /app/data && chown appuser:appuser /app/data
+COPY migrations/ ./migrations/
 
 USER appuser
 
-ENV PORT=8000 \
-    DATA_DIR=/app/data
+# DATABASE_URL is not set here: it holds a password and is given at runtime
+ENV PORT=8000
 
 EXPOSE 8000
 
 # Shell form via sh -c so ${PORT} is expanded at runtime; exec makes gunicorn PID 1
-CMD ["sh", "-c", "exec gunicorn --bind 0.0.0.0:${PORT} --workers 2 --access-logfile - app:app"]
+CMD ["sh", "-c", "exec gunicorn --bind 0.0.0.0:${PORT} --workers 2 app:app"]
