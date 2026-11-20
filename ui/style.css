@@ -526,3 +526,17 @@ button:hover {
         padding: 3px;
     }
 }
+/* Shown when one of the services cannot be reached */
+.notice {
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    background: var(--warning-soft);
+    color: var(--warning);
+    font-size: 14px;
+}
+
+/* Elements hidden by app.js (some classes above set display, which would override it) */
+[hidden] {
+    display: none !important;
+}

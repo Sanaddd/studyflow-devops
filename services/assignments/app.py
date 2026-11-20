@@ -22,6 +22,13 @@ run_migrations()
 VERSION = os.environ.get("GIT_SHA", "dev")
 
 
+# Browser origins allowed to call this API (the UI's origin), comma-separated.
+# Unset means no cross-origin access at all.
+CORS_ORIGINS = {
+    origin.strip() for origin in os.environ.get("CORS_ORIGINS", "").split(",") if origin.strip()
+}
+
+
 @app.before_request
 def start_timer():
     g.start_time = time.perf_counter()
@@ -32,6 +39,19 @@ def log_request(response):
     # One line per request on stdout: method, path, status, duration
     duration_ms = (time.perf_counter() - g.get("start_time", time.perf_counter())) * 1000
     print(f"{request.method} {request.path} {response.status_code} {duration_ms:.1f}ms", flush=True)
+    return response
+
+
+@app.after_request
+def add_cors_headers(response):
+    # Only the UI's origin gets the CORS headers, so other sites' pages cannot read the API.
+    # Flask answers the browser's OPTIONS preflight itself; these headers make it pass.
+    origin = request.headers.get("Origin")
+    if origin in CORS_ORIGINS:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+        response.headers["Vary"] = "Origin"
     return response
 
 
