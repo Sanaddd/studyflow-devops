@@ -90,6 +90,8 @@ Each service reads:
 - DATABASE_URL - connection string of the service's own database. Secret, no default
 - GIT_SHA - commit the image was built from, shown by /health. Default: dev
 - CORS_ORIGINS - browser origins allowed to call the service, comma-separated (compose: http://localhost:8080). No default: cross-origin calls are refused
+- COURSES_URL (assignments only) - base URL of the courses service. Default: http://courses:8000
+- COURSES_TIMEOUT_S (assignments only) - how long to wait for the courses service, in seconds. Default: 2
 
 ## Health and logs
 
