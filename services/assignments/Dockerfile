@@ -16,7 +16,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Application code, file by file (no COPY . .)
-COPY app.py database.py assignment_service.py ./
+COPY app.py database.py assignment_service.py courses_client.py ./
 COPY migrations/ ./migrations/
 
 USER appuser

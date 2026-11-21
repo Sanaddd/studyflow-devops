@@ -32,6 +32,10 @@ _connection.close()
 
 os.environ["DATABASE_URL"] = ADMIN_URL._replace(path=f"/{TEST_DB}").geturl()
 
+# No courses service in unit tests: point at a closed local port so calls fail fast.
+# Tests that need course names replace fetch_course_names with a stub.
+os.environ.setdefault("COURSES_URL", "http://127.0.0.1:9")
+
 
 def pytest_sessionfinish(session, exitstatus):
     connection = admin_connection()

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyFlow</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<div class="page-shell">
+
+    <nav class="topbar">
+        <div class="topbar-inner">
+
+            <div class="brand">
+                <div class="brand-mark">S</div>
+
+                <div class="brand-text">
+                    <h1>StudyFlow</h1>
+                    <p>Student planner</p>
+                </div>
+            </div>
+
+            <span class="topbar-badge">
+                Course & assignment workspace
+            </span>
+
+        </div>
+    </nav>
+
+    <main class="main">
+
+        <section class="hero">
+
+            <div class="hero-card">
+                <h2>Stay on top of your semester.</h2>
+
+                <p>
+                    Keep courses and assignments in one place, track upcoming
+                    deadlines and priorities, and organise your academic workload.
+                </p>
+            </div>
+
+            <div class="stats-card">
+
+                <div class="stat">
+                    <span class="stat-label">Courses</span>
+                    <span class="stat-value" id="courseCount">–</span>
+                </div>
+
+                <div class="stat">
+                    <span class="stat-label">Assignments</span>
+                    <span class="stat-value" id="assignmentCount">–</span>
+                </div>
+
+            </div>
+
+        </section>
+
+        <!-- Filled in by app.js when a service cannot be reached -->
+        <div class="notice" id="coursesNotice" hidden></div>
+        <div class="notice" id="assignmentsNotice" hidden></div>
+
+        <div class="grid">
+
+            <section class="card">
+
+                <div class="card-header">
+                    <div>
+                        <h2 class="card-title">Add a course</h2>
+                        <p class="card-subtitle">
+                            Create a course to start organising your work.
+                        </p>
+                    </div>
+                </div>
+
+                <form id="courseForm" class="form-grid">
+
+                    <div class="field">
+                        <label for="name">Course name</label>
+                        <input id="name" name="name" type="text" placeholder="Artificial Intelligence" required>
+                    </div>
+
+                    <div class="field">
+                        <label for="code">Course code</label>
+                        <input id="code" name="code" type="text" placeholder="CS301" required>
+                    </div>
+
+                    <div>
+                        <button class="btn-primary" type="submit">Add course</button>
+                    </div>
+
+                </form>
+
+            </section>
+
+            <section class="card">
+
+                <div class="card-header">
+                    <div>
+                        <h2 class="card-title">Add an assignment</h2>
+                        <p class="card-subtitle">
+                            Link coursework to one of your courses.
+                        </p>
+                    </div>
+                </div>
+
+                <form id="assignmentForm" class="form-grid" hidden>
+
+                    <div class="field">
+                        <label for="title">Assignment title</label>
+                        <input id="title" name="title" type="text" placeholder="Database report" required>
+                    </div>
+
+                    <div class="form-row">
+
+                        <div class="field">
+                            <label for="due_date">Due date</label>
+                            <input id="due_date" name="due_date" type="date" required>
+                        </div>
+
+                        <div class="field">
+                            <label for="priority">Priority</label>
+                            <select id="priority" name="priority" required>
+                                <option value="Low">Low</option>
+                                <option value="Medium">Medium</option>
+                                <option value="High">High</option>
+                            </select>
+                        </div>
+
+                    </div>
+
+                    <div class="field">
+                        <label for="course_id">Course</label>
+                        <select id="course_id" name="course_id" required></select>
+                    </div>
+
+                    <div>
+                        <button class="btn-primary" type="submit">Add assignment</button>
+                    </div>
+
+                </form>
+
+                <div class="empty" id="assignmentFormEmpty">
+                    Add a course first before creating an assignment.
+                </div>
+
+            </section>
+
+            <section class="card full">
+
+                <div class="card-header">
+                    <div>
+                        <h2 class="card-title">Calendar</h2>
+                        <p class="card-subtitle">
+                            See your assignments by due date.
+                        </p>
+                    </div>
+
+                    <div class="calendar-controls">
+                        <button class="calendar-nav" type="button" id="previousMonth">‹</button>
+                        <div class="calendar-title" id="calendarTitle"></div>
+                        <button class="calendar-nav" type="button" id="nextMonth">›</button>
+                    </div>
+                </div>
+
+                <div class="calendar-weekdays">
+                    <div class="weekday">Mon</div>
+                    <div class="weekday">Tue</div>
+                    <div class="weekday">Wed</div>
+                    <div class="weekday">Thu</div>
+                    <div class="weekday">Fri</div>
+                    <div class="weekday">Sat</div>
+                    <div class="weekday">Sun</div>
+                </div>
+
+                <div class="calendar-grid" id="calendarGrid"></div>
+
+            </section>
+
+            <section class="card">
+
+                <div class="card-header">
+                    <div>
+                        <h2 class="card-title">My courses</h2>
+                        <p class="card-subtitle">
+                            Edit or remove your courses.
+                        </p>
+                    </div>
+                </div>
+
+                <ul class="course-list" id="courseList"></ul>
+                <div class="empty" id="courseListEmpty">No courses yet.</div>
+
+            </section>
+
+            <section class="card">
+
+                <div class="card-header">
+                    <div>
+                        <h2 class="card-title">My assignments</h2>
+                        <p class="card-subtitle">
+                            Coursework ordered by due date.
+                        </p>
+                    </div>
+                </div>
+
+                <ul class="assignment-list" id="assignmentList"></ul>
+                <div class="empty" id="assignmentListEmpty">No assignments yet.</div>
+
+            </section>
+
+        </div>
+
+    </main>
+
+</div>
+
+<!-- config.js first: it sets the service addresses that app.js uses -->
+<script src="config.js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>

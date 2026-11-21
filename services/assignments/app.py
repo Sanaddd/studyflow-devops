@@ -10,6 +10,7 @@ from assignment_service import (
     toggle_assignment_complete,
 )
 from database import check_db, run_migrations
+from courses_client import CoursesUnavailable, fetch_course_names
 
 
 app = Flask(__name__)
@@ -20,6 +21,13 @@ run_migrations()
 
 # Version of the running code: the commit SHA, set by the pipeline. "dev" when run locally.
 VERSION = os.environ.get("GIT_SHA", "dev")
+
+
+# Browser origins allowed to call this API (the UI's origin), comma-separated.
+# Unset means no cross-origin access at all.
+CORS_ORIGINS = {
+    origin.strip() for origin in os.environ.get("CORS_ORIGINS", "").split(",") if origin.strip()
+}
 
 
 @app.before_request
@@ -35,6 +43,19 @@ def log_request(response):
     return response
 
 
+@app.after_request
+def add_cors_headers(response):
+    # Only the UI's origin gets the CORS headers, so other sites' pages cannot read the API.
+    # Flask answers the browser's OPTIONS preflight itself; these headers make it pass.
+    origin = request.headers.get("Origin")
+    if origin in CORS_ORIGINS:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+        response.headers["Vary"] = "Origin"
+    return response
+
+
 @app.get("/health")
 def health():
     # Reports only this service's own state, never the other service's
@@ -45,7 +66,25 @@ def health():
 
 @app.get("/assignments")
 def list_assignments():
-    return jsonify(get_all_assignments())
+    assignments = get_all_assignments()
+
+    # Cross-service flow: course names come from the courses service over HTTP.
+    # If it is down or slow, assignments are still returned, with course_name null,
+    # so this service keeps working on its own data.
+    try:
+        names = fetch_course_names()
+    except CoursesUnavailable as error:
+        print(f"courses service unavailable: {error}", flush=True)
+        names = None
+
+    for assignment in assignments:
+        if names is None:
+            assignment["course_name"] = None
+        else:
+            # The course may have been deleted: the database cannot stop that across services
+            assignment["course_name"] = names.get(assignment["course_id"], "Unknown course")
+
+    return jsonify(assignments)
 
 
 @app.post("/assignments")

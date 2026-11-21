@@ -37,7 +37,7 @@ StudyFlow is being split into two services along the seam from ADR-2:
     services/
       courses/        Courses domain: own Flask app, own database, own Dockerfile
       assignments/    Assignments domain: own Flask app, own database, own Dockerfile
-    ui/               Front end (being converted to a static site)
+    ui/               Static front end (HTML, CSS, JS) that calls both services
 
 Each service has its own `requirements.txt` (runtime, pinned) and
 `requirements-dev.txt` (tests). Assignments store only a `course_id`; course
@@ -89,6 +89,9 @@ Each service reads:
 - PORT - port the service listens on. Default: 8000
 - DATABASE_URL - connection string of the service's own database. Secret, no default
 - GIT_SHA - commit the image was built from, shown by /health. Default: dev
+- CORS_ORIGINS - browser origins allowed to call the service, comma-separated (compose: http://localhost:8080). No default: cross-origin calls are refused
+- COURSES_URL (assignments only) - base URL of the courses service. Default: http://courses:8000
+- COURSES_TIMEOUT_S (assignments only) - how long to wait for the courses service, in seconds. Default: 2
 
 ## Health and logs
 
