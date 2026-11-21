@@ -10,6 +10,7 @@ from assignment_service import (
     toggle_assignment_complete,
 )
 from database import check_db, run_migrations
+from courses_client import CoursesUnavailable, fetch_course_names
 
 
 app = Flask(__name__)
@@ -65,7 +66,25 @@ def health():
 
 @app.get("/assignments")
 def list_assignments():
-    return jsonify(get_all_assignments())
+    assignments = get_all_assignments()
+
+    # Cross-service flow: course names come from the courses service over HTTP.
+    # If it is down or slow, assignments are still returned, with course_name null,
+    # so this service keeps working on its own data.
+    try:
+        names = fetch_course_names()
+    except CoursesUnavailable as error:
+        print(f"courses service unavailable: {error}", flush=True)
+        names = None
+
+    for assignment in assignments:
+        if names is None:
+            assignment["course_name"] = None
+        else:
+            # The course may have been deleted: the database cannot stop that across services
+            assignment["course_name"] = names.get(assignment["course_id"], "Unknown course")
+
+    return jsonify(assignments)
 
 
 @app.post("/assignments")

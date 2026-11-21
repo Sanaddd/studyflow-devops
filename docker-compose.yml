@@ -58,6 +58,8 @@ services:
         condition: service_completed_successfully
     environment:
       DATABASE_URL: mssql://assignments_user:${ASSIGNMENTS_DB_PASSWORD}@sqlserver:1433/assignments
+      COURSES_URL: http://courses:8000 # the service name on the compose network, not localhost
+      COURSES_TIMEOUT_S: "2"
       GIT_SHA: ${GIT_SHA:-dev}
       CORS_ORIGINS: http://localhost:8080 # the UI below
     ports:

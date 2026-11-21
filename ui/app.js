@@ -77,12 +77,10 @@ function el(tag, props = {}, children = []) {
     return element;
 }
 
-function courseName(courseId) {
-    if (state.coursesError) {
-        return "Course unavailable";
-    }
-    const course = state.courses.find(item => item.id === courseId);
-    return course ? course.name : "Unknown course";
+// The assignments service adds course_name by asking the courses service.
+// It sends null when the courses service could not be reached.
+function courseName(assignment) {
+    return assignment.course_name ?? "Course unavailable";
 }
 
 function showNotice(id, message) {
@@ -199,7 +197,7 @@ function renderAssignmentList() {
             className: assignment.completed ? "assignment-item assignment-complete" : "assignment-item"
         }, [
             el("p", { className: "assignment-title", textContent: assignment.title }),
-            el("p", { className: "assignment-course", textContent: courseName(assignment.course_id) }),
+            el("p", { className: "assignment-course", textContent: courseName(assignment) }),
             el("div", { className: "assignment-meta" }, badges),
             el("div", { className: "assignment-actions" }, [toggleButton, deleteButton])
         ]);
@@ -245,7 +243,7 @@ function renderCalendar() {
                 .map(assignment => {
                     const event = el("div", {
                         className: "calendar-event",
-                        textContent: `${assignment.title} · ${courseName(assignment.course_id)}`
+                        textContent: `${assignment.title} · ${courseName(assignment)}`
                     });
                     if (assignment.completed) {
                         event.classList.add("event-complete");
