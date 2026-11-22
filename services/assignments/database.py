@@ -5,7 +5,6 @@ from urllib.parse import unquote, urlparse
 
 import pymssql
 
-
 MIGRATIONS_DIR = Path(__file__).parent / "migrations"
 
 # Azure SQL serverless returns this error while a paused database is resuming.

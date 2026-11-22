@@ -9,9 +9,8 @@ from assignment_service import (
     get_all_assignments,
     toggle_assignment_complete,
 )
-from database import check_db, run_migrations
 from courses_client import CoursesUnavailable, fetch_course_names
-
+from database import check_db, run_migrations
 
 app = Flask(__name__)
 
@@ -99,7 +98,8 @@ def create_assignment():
         return jsonify({"error": "title, due_date, priority and course_id are required"}), 400
 
     add_assignment(title, due_date, priority, int(course_id))
-    return jsonify({"title": title, "due_date": due_date, "priority": priority, "course_id": int(course_id)}), 201
+    created = {"title": title, "due_date": due_date, "priority": priority, "course_id": int(course_id)}
+    return jsonify(created), 201
 
 
 @app.post("/assignments/<int:assignment_id>/toggle")

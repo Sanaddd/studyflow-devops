@@ -1,12 +1,14 @@
 # CI for StudyFlow (Assignment 2)
-# - test:   runs each service's unit tests on every push and pull request
-# - images: builds each service image on every push and pull request,
-#           and publishes it to GHCR, tagged with the commit SHA, only from main
+# - test:        lint, unit tests and a 70% coverage gate for each service
+# - integration: the whole system in docker compose, testing the call across the seam
+# - images:      builds each service image on every push and pull request,
+#                and publishes it to GHCR, tagged with the commit SHA, only from main
 name: CI
 
 on:
   push:
   pull_request:
+  workflow_call: # lets the CD workflow run this CI first and deploy only if it passes
 
 jobs:
   test:
@@ -42,12 +44,46 @@ jobs:
             echo "SQL Server not ready ($attempt/30)"; sleep 2
           done
           exit 1
-      - name: Run tests
-        run: python -m pytest -v
+      - name: Lint
+        run: ruff check .
+      - name: Run tests with coverage (fails below 70%, see .coveragerc)
+        run: python -m pytest -v --cov --cov-report=term
+
+  integration:
+    # The real system, both services and SQL Server, started by docker compose
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # Passwords generated for this run only, never stored in the repo
+      - name: Create .env
+        run: |
+          for name in SA_PASSWORD COURSES_DB_PASSWORD ASSIGNMENTS_DB_PASSWORD; do
+            value="Ci_$(openssl rand -hex 12)_1a"
+            echo "::add-mask::$value"
+            echo "$name=$value" >> .env
+          done
+      - name: Start the system
+        run: docker compose up --build -d
+      - name: Install pytest
+        run: pip install pytest==9.2.0
+      - name: Run the cross-service test
+        run: python -m pytest tests/integration -v
+      - name: Show service logs if it failed
+        if: failure()
+        run: docker compose logs courses assignments db-init
+      - name: Stop the system
+        if: always()
+        run: docker compose down -v
 
   images:
     # No image is built from a commit whose tests failed
-    needs: test
+    needs: [test, integration]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -75,4 +111,6 @@ jobs:
         with:
           context: services/${{ matrix.service }}
           push: ${{ github.ref == 'refs/heads/main' }}
+          # Container Apps cannot pull a tag that points to an attestation index
+          provenance: false
           tags: ghcr.io/${{ env.OWNER }}/studyflow-${{ matrix.service }}:${{ github.sha }}

@@ -6,7 +6,6 @@ from flask import Flask, g, jsonify, request
 from course_service import add_course, delete_course, get_all_courses, update_course
 from database import check_db, run_migrations
 
-
 app = Flask(__name__)
 
 # Bring the schema up to date before serving any request
