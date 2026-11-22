@@ -75,12 +75,18 @@ Data is kept between restarts. `docker compose down -v` deletes it.
 
 ## Testing
 
-Tests run against a throwaway SQL Server. Each run creates its own database and drops it at the end.
-From inside a service folder:
+Lint, unit tests and coverage, from inside a service folder. Tests run against a throwaway SQL Server: each run creates its own database and drops it at the end.
 
     export TEST_SQLSERVER_URL="mssql://sa:<password>@localhost:1433/master"
-    python -m pytest -v
-    python -m pytest --cov=. --cov-report=term-missing
+    ruff check .
+    python -m pytest --cov        # fails if coverage is below 70%
+
+Integration test across both services, from the repository root, with the system running:
+
+    docker compose up --build -d
+    python -m pytest tests/integration -v
+
+It checks that assignments get course names from the courses service, and that they still load, without names, when the courses service is stopped.
 
 ## Configuration
 

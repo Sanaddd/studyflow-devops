@@ -1,6 +1,7 @@
 # CI for StudyFlow (Assignment 2)
 # - test:        lint, unit tests and a 70% coverage gate for each service
 # - integration: the whole system in docker compose, testing the call across the seam
+# - specs:       system.yaml against system.schema.json, and each openapi.yaml
 # - images:      builds each service image on every push and pull request,
 #                and publishes it to GHCR, tagged with the commit SHA, only from main
 name: CI
@@ -49,6 +50,26 @@ jobs:
       - name: Run tests with coverage (fails below 70%, see .coveragerc)
         run: python -m pytest -v --cov --cov-report=term
 
+  specs:
+    # The machine-readable system description must stay valid
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install validators
+        run: pip install check-jsonschema==0.39.0 openapi-spec-validator==0.9.0
+      - name: Validate system.yaml against system.schema.json
+        run: check-jsonschema --schemafile system.schema.json system.yaml
+      - name: Validate each service's OpenAPI document
+        run: |
+          for spec in services/*/openapi.yaml; do
+            openapi-spec-validator "$spec"
+          done
+
   integration:
     # The real system, both services and SQL Server, started by docker compose
     needs: test
@@ -83,7 +104,7 @@ jobs:
 
   images:
     # No image is built from a commit whose tests failed
-    needs: [test, integration]
+    needs: [test, integration, specs]
     runs-on: ubuntu-latest
     permissions:
       contents: read

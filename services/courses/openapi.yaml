@@ -1,0 +1,115 @@
+openapi: 3.0.3
+info:
+  title: StudyFlow courses service
+  version: 1.0.0
+  description: >
+    Owns the courses domain and its own database. The assignments service calls
+    GET /courses to show course names.
+
+paths:
+  /health:
+    get:
+      summary: Health of this service and its own database
+      responses:
+        "200":
+          description: The service can read and write its own database
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Health" }
+        "503":
+          description: The service cannot use its own database
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Health" }
+
+  /courses:
+    get:
+      summary: List all courses, ordered by name
+      description: Also called by the assignments service to look up course names.
+      responses:
+        "200":
+          description: All courses
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Course" }
+    post:
+      summary: Create a course
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CourseInput" }
+      responses:
+        "201":
+          description: Course created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CourseInput" }
+        "400":
+          description: name or code missing
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /courses/{course_id}:
+    parameters:
+      - name: course_id
+        in: path
+        required: true
+        schema: { type: integer }
+    put:
+      summary: Update a course's name and code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CourseInput" }
+      responses:
+        "200":
+          description: Course updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Course" }
+        "400":
+          description: name or code missing
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    delete:
+      summary: Delete a course
+      description: >
+        Assignments that still point to this course are not changed; the assignments
+        service then shows them with "Unknown course".
+      responses:
+        "204":
+          description: Course deleted (or did not exist)
+
+components:
+  schemas:
+    Course:
+      type: object
+      required: [id, name, code]
+      properties:
+        id: { type: integer, example: 1 }
+        name: { type: string, example: Software Development }
+        code: { type: string, example: SDD }
+    CourseInput:
+      type: object
+      required: [name, code]
+      properties:
+        name: { type: string, example: Software Development }
+        code: { type: string, example: SDD }
+    Health:
+      type: object
+      required: [status, db, version]
+      properties:
+        status: { type: string, enum: [ok, error] }
+        db: { type: string, enum: [ok, error] }
+        version: { type: string, description: "Commit SHA of the running image, or dev", example: dev }
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }
