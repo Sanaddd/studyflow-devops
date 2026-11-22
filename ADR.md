@@ -83,3 +83,15 @@ Decision: Each service has its own database and a migrations folder of numbered 
 Alternatives considered: I considered Alembic, but rejected it because a small runner over plain SQL files is easier for me to read and explain, and the project only needs forward migrations.
 
 Consequences: The database no longer stops an assignment from pointing to a course that does not exist; this has to be handled in code and in how the UI shows a missing course. Migrations are forward-only: a bad migration is fixed with a new migration, never by editing an applied one, and if data is damaged the Azure SQL database is restored from its automatic point-in-time backup.
+
+## 9. What CI checks before anything is published
+Date: 2026-11-22
+Status: Decided
+
+Context: Assignment 2 requires every push to be linted, tested and built, with at least 70% coverage per service, a test across the seam, and a valid system description, before anything is deployed.
+
+Decision: CI runs four jobs. Per service: ruff lint, unit tests against a throwaway SQL Server and a 70% coverage gate on the service's own code. An integration job starts the real system with docker compose and checks that assignments get course names from the courses service, and still load without them when courses is stopped. A specs job validates system.yaml and both OpenAPI documents. Images are built only after all three pass, and pushed only from main.
+
+Alternatives considered: I considered testing the cross-service call only with a stub of the courses service, but rejected it as the only test because it would not prove the two real containers can talk on the compose network. Stubs are still used in the unit tests, where they keep the tests fast.
+
+Consequences: A broken build, a failing test, low coverage or an invalid system.yaml stops the pipeline before any image is published. Not tested automatically: the browser UI, which I check by hand, and the Azure deployment itself, which is checked by the post-deploy /health step instead.

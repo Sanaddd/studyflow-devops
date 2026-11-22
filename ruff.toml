@@ -1,0 +1,9 @@
+# Lint settings shared by both services (ruff finds this file from any subfolder)
+line-length = 110
+target-version = "py312"
+# Each service folder is its own import root (app, database, ... are local modules)
+src = ["services/courses", "services/assignments"]
+
+[lint]
+# E/W: style errors, F: real bugs (unused imports, undefined names), I: import order, B: likely bugs
+select = ["E", "W", "F", "I", "B"]

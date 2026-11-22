@@ -1,0 +1,123 @@
+openapi: 3.0.3
+info:
+  title: StudyFlow assignments service
+  version: 1.0.0
+  description: >
+    Owns the assignments domain and its own database. Assignments store only a
+    course_id; GET /assignments asks the courses service (GET /courses) for the
+    course names.
+
+paths:
+  /health:
+    get:
+      summary: Health of this service and its own database
+      description: Never depends on the courses service.
+      responses:
+        "200":
+          description: The service can read and write its own database
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Health" }
+        "503":
+          description: The service cannot use its own database
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Health" }
+
+  /assignments:
+    get:
+      summary: List all assignments, ordered by due date, with course names
+      description: >
+        course_name comes from GET /courses on the courses service (timeout
+        COURSES_TIMEOUT_S, default 2 s). If the courses service is down, slow or
+        failing, the list is still returned with course_name null. A course_id with
+        no matching course gives "Unknown course".
+      responses:
+        "200":
+          description: All assignments
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Assignment" }
+    post:
+      summary: Create an assignment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AssignmentInput" }
+      responses:
+        "201":
+          description: Assignment created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AssignmentInput" }
+        "400":
+          description: A required field is missing
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /assignments/{assignment_id}/toggle:
+    parameters:
+      - name: assignment_id
+        in: path
+        required: true
+        schema: { type: integer }
+    post:
+      summary: Switch an assignment between completed and not completed
+      responses:
+        "204":
+          description: Toggled (or did not exist)
+
+  /assignments/{assignment_id}:
+    parameters:
+      - name: assignment_id
+        in: path
+        required: true
+        schema: { type: integer }
+    delete:
+      summary: Delete an assignment
+      responses:
+        "204":
+          description: Deleted (or did not exist)
+
+components:
+  schemas:
+    Assignment:
+      type: object
+      required: [id, title, due_date, priority, completed, course_id, overdue, course_name]
+      properties:
+        id: { type: integer, example: 1 }
+        title: { type: string, example: Assignment 2 }
+        due_date: { type: string, format: date, example: "2026-12-01" }
+        priority: { type: string, enum: [Low, Medium, High] }
+        completed: { type: boolean }
+        course_id: { type: integer, example: 1 }
+        overdue: { type: boolean, description: Due date has passed and it is not completed }
+        course_name:
+          type: string
+          nullable: true
+          description: From the courses service; null when it could not be reached
+          example: Software Development
+    AssignmentInput:
+      type: object
+      required: [title, due_date, priority, course_id]
+      properties:
+        title: { type: string, example: Assignment 2 }
+        due_date: { type: string, format: date, example: "2026-12-01" }
+        priority: { type: string, enum: [Low, Medium, High] }
+        course_id: { type: integer, example: 1 }
+    Health:
+      type: object
+      required: [status, db, version]
+      properties:
+        status: { type: string, enum: [ok, error] }
+        db: { type: string, enum: [ok, error] }
+        version: { type: string, description: "Commit SHA of the running image, or dev", example: dev }
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }

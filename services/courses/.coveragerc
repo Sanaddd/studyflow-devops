@@ -1,0 +1,9 @@
+# Coverage measures the service's own code, not the tests themselves
+[run]
+source = .
+omit = tests/*
+
+[report]
+# CI fails if the service's code is less than 70% covered
+fail_under = 70
+show_missing = true

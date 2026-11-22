@@ -1,0 +1,59 @@
+# yaml-language-server: $schema=./system.schema.json
+# Describes the whole system: services, configuration, calls across the seam and Azure resources.
+# Validated against system.schema.json in CI. Must match the code and the deployment.
+student: shamad.ieu2024
+prefix: shamad-ieu2024
+public_url: https://shamadieu2024ui.z6.web.core.windows.net # confirmed after the first deploy
+
+ui:
+  path: ui
+  storage_account: shamadieu2024ui
+  calls: [courses, assignments]
+
+azure:
+  resource_group: shamad-ieu2024-rg
+  container_apps_environment: shamad-ieu2024-env
+  sql_server: shamad-ieu2024-sql
+  registry: ghcr.io/sanaddd
+
+services:
+  courses:
+    description: Courses (name and code). Owns the courses database.
+    path: services/courses
+    openapi: services/courses/openapi.yaml
+    port_default: 8000
+    health: /health
+    migrations: services/courses/migrations
+    env:
+      PORT: { default: 8000, description: Port the service listens on }
+      DATABASE_URL: { secret: true, description: "Connection string of the courses database (mssql://user:password@host:port/db)" }
+      GIT_SHA: { default: dev, description: "Commit the image was built from, shown by /health" }
+      CORS_ORIGINS: { default: "", description: "Browser origins allowed to call the service, comma-separated. Empty: none" }
+    calls: []
+    azure:
+      container_app: shamad-ieu2024-courses
+      sql_database: shamad-ieu2024-courses-db
+
+  assignments:
+    description: Assignments (title, due date, priority, completion) linked to a course by id. Owns the assignments database.
+    path: services/assignments
+    openapi: services/assignments/openapi.yaml
+    port_default: 8000
+    health: /health
+    migrations: services/assignments/migrations
+    env:
+      PORT: { default: 8000, description: Port the service listens on }
+      DATABASE_URL: { secret: true, description: "Connection string of the assignments database (mssql://user:password@host:port/db)" }
+      GIT_SHA: { default: dev, description: "Commit the image was built from, shown by /health" }
+      CORS_ORIGINS: { default: "", description: "Browser origins allowed to call the service, comma-separated. Empty: none" }
+      COURSES_URL: { default: "http://courses:8000", description: Base URL of the courses service }
+      COURSES_TIMEOUT_S: { default: 2, description: Seconds to wait for the courses service }
+    calls:
+      - service: courses
+        url_env: COURSES_URL
+        endpoints: ["GET /courses"]
+        timeout_s: 2
+        on_failure: Assignments are still listed, with course_name null; the UI shows "Course unavailable" and a notice.
+    azure:
+      container_app: shamad-ieu2024-assignments
+      sql_database: shamad-ieu2024-assignments-db
