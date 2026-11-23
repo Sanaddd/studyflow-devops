@@ -103,3 +103,49 @@ Each service reads:
 
 - GET /health returns 200 `{"status": "ok", "db": "ok", "version": "<sha>"}` when the service can read and write its own database, and 503 otherwise.
 - Every request writes one line to stdout: method, path, status and duration.
+
+## Deploying to Azure
+
+The system runs in my Azure for Students subscription, in polandcentral: https://shamadieu2024ui.z36.web.core.windows.net
+
+On every push to main, `.github/workflows/cd.yml` runs CI, then points both Container Apps at the images tagged with that commit, writes `ui/config.js` with the services' Azure addresses, uploads `ui/` to the storage static website, and waits until `/health` of both services returns 200.
+
+### Initial setup (run once, in bash)
+
+    P=shamad-ieu2024; RG=rg-$P; LOC=polandcentral
+    az account set --subscription "Azure for Students"
+    az group create -n $RG -l $LOC
+
+    # UI: storage static website
+    az storage account create -n shamadieu2024ui -g $RG -l $LOC --sku Standard_LRS --kind StorageV2
+    az storage blob service-properties update --account-name shamadieu2024ui --static-website --index-document index.html
+
+    # SQL server and one serverless database per service, on the free offer
+    az sql server create -n $P-sql -g $RG -l $LOC --admin-user sfadmin --admin-password <admin password>
+    az sql server firewall-rule create -g $RG -s $P-sql -n AllowAzureServices --start-ip-address 0.0.0.0 --end-ip-address 0.0.0.0
+    az sql db create -g $RG -s $P-sql -n $P-courses-db --edition GeneralPurpose --compute-model Serverless --family Gen5 --min-capacity 0.5 --capacity 1 --backup-storage-redundancy Local --use-free-limit true --free-limit-exhaustion-behavior AutoPause
+    (the same for $P-assignments-db)
+
+    # One contained user per database, run with sqlcmd as the admin (firewall opened to my IP for this, then closed):
+    CREATE USER courses_user WITH PASSWORD = '<courses password>';
+    ALTER ROLE db_ddladmin ADD MEMBER courses_user;
+    ALTER ROLE db_datareader ADD MEMBER courses_user;
+    ALTER ROLE db_datawriter ADD MEMBER courses_user;
+    (the same for assignments_user in the assignments database)
+
+    # Container Apps
+    az containerapp env create -n $P-env -g $RG -l $LOC
+    az containerapp create -n $P-courses -g $RG --environment $P-env --image mcr.microsoft.com/k8se/quickstart:latest --ingress external --target-port 8000 --min-replicas 0 --max-replicas 1 --cpu 0.25 --memory 0.5Gi --secrets database-url=<courses connection string> --env-vars PORT=8000 DATABASE_URL=secretref:database-url CORS_ORIGINS=https://shamadieu2024ui.z36.web.core.windows.net
+    az containerapp create -n $P-assignments ... (the same, plus COURSES_URL=https://<courses address> COURSES_TIMEOUT_S=2)
+
+    # Identity the pipeline signs in as (OIDC, no stored Azure password)
+    az identity create -n $P-github -g $RG -l $LOC
+    az role assignment create --assignee-object-id <identity principal id> --assignee-principal-type ServicePrincipal --role Contributor --scope <resource group id>
+    az identity federated-credential create --identity-name $P-github -g $RG -n github-main --issuer https://token.actions.githubusercontent.com --audiences api://AzureADTokenExchange --subject "repo:Sanaddd/studyflow-devops:ref:refs/heads/main"
+    (and github-main-ids with the numeric form repo:Sanaddd@145849499/studyflow-devops@1406333785:ref:refs/heads/main)
+
+    # GitHub: secrets AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID, COURSES_DB_PASSWORD, ASSIGNMENTS_DB_PASSWORD
+    #         variables PREFIX, RESOURCE_GROUP, UI_STORAGE
+    # Reader on the resource group for amartini@faculty.ie.edu and bserra@faculty.ie.edu
+
+After this, only the pipeline changes anything. The first request after an idle period can take about a minute while the container starts and the database resumes; the UI shows "starting up" and retries.
