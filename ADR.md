@@ -95,3 +95,15 @@ Decision: CI runs four jobs. Per service: ruff lint, unit tests against a throwa
 Alternatives considered: I considered testing the cross-service call only with a stub of the courses service, but rejected it as the only test because it would not prove the two real containers can talk on the compose network. Stubs are still used in the unit tests, where they keep the tests fast.
 
 Consequences: A broken build, a failing test, low coverage or an invalid system.yaml stops the pipeline before any image is published. Not tested automatically: the browser UI, which I check by hand, and the Azure deployment itself, which is checked by the post-deploy /health step instead.
+
+## 8. Hosting on Azure: serverless and scale to zero
+Date: 2026-11-23
+Status: Decided
+
+Context: Assignment 2 deploys the system to my own Azure for Students subscription, which has limited credit, and asks for a pipeline that deploys every change to main without stored Azure passwords.
+
+Decision: Each service runs as a Container App with 0 to 1 replicas, and each has its own serverless Azure SQL database on the free offer, which pauses after an hour without use. The UI is a static website on Azure Storage. The CD workflow signs in with a managed identity through OIDC, deploys the images tagged with the commit SHA, builds each connection string from GitHub secrets, and waits for /health on both services.
+
+Alternatives considered: I considered keeping one replica always running, but rejected it because it uses credit even when nobody is using the app. I also considered App Service for the UI, but a storage static website is enough for HTML, CSS and JS.
+
+Consequences: An idle system costs almost nothing, but the first request after a quiet period is slow: the container has to start and the database may have to resume, which takes about a minute. The services retry the database connection, and the UI shows a "starting up" message and retries on its own.

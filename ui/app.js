@@ -7,6 +7,14 @@ const ASSIGNMENTS_URL = window.CONFIG.ASSIGNMENTS_URL;
 // Give up on a request after this long, so a stopped service never leaves the page hanging
 const REQUEST_TIMEOUT_MS = 5000;
 
+// On Azure a service that has been idle starts again on the first request and may
+// have to wake its paused database (about a minute). Until then, retry the load.
+const RETRY_DELAY_MS = 10000;
+const MAX_RETRIES = 12;
+let retries = 0;
+let retryTimer = null;
+let retrying = false;
+
 const state = {
     courses: [],
     assignments: [],
@@ -52,6 +60,16 @@ async function loadData() {
     state.assignmentsError = assignments.status === "rejected" ? assignments.reason : null;
     state.assignments = assignments.status === "fulfilled" ? assignments.value : [];
 
+    clearTimeout(retryTimer);
+    const failed = state.coursesError || state.assignmentsError;
+    retrying = Boolean(failed) && retries < MAX_RETRIES;
+    if (retrying) {
+        retries += 1;
+        retryTimer = setTimeout(loadData, RETRY_DELAY_MS);
+    } else if (!failed) {
+        retries = 0;
+    }
+
     render();
 }
 
@@ -89,16 +107,20 @@ function showNotice(id, message) {
     notice.hidden = !message;
 }
 
+function retryText() {
+    return retrying ? "Trying again in a few seconds..." : "Please reload the page in a minute.";
+}
+
 // ---------- Rendering ----------
 
 function render() {
     showNotice(
         "coursesNotice",
-        state.coursesError && "Courses are unavailable right now. Assignments still work, but course names cannot be shown."
+        state.coursesError && `Courses are starting up or unavailable. ${retryText()} Assignments still work, but course names cannot be shown.`
     );
     showNotice(
         "assignmentsNotice",
-        state.assignmentsError && "Assignments are unavailable right now. Courses still work."
+        state.assignmentsError && `Assignments are starting up or unavailable. ${retryText()} Courses still work.`
     );
 
     document.getElementById("courseCount").textContent =

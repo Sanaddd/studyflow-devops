@@ -1,0 +1,106 @@
+# CD for StudyFlow (Assignment 2): deploys to Azure on every push to main,
+# only if CI passed on the same commit.
+# - ci:     runs ci.yml, which tests and pushes the images tagged with this commit's SHA
+# - deploy: points both Container Apps at those images, writes ui/config.js with
+#           the services' Azure addresses, uploads ui/ to the storage static website,
+#           then waits until /health of both services returns 200
+name: CD
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: cd-main
+  cancel-in-progress: false # never cancel a deploy half way
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+      packages: write # a called workflow gets no more permissions than its caller grants
+
+  deploy:
+    needs: ci
+    if: vars.PREFIX != '' # skipped until the one-time Azure setup has stored the variables
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # lets azure/login sign in with GitHub's OIDC token, so no Azure password is stored
+    env:
+      PREFIX: ${{ vars.PREFIX }}
+      RESOURCE_GROUP: ${{ vars.RESOURCE_GROUP }}
+      UI_STORAGE: ${{ vars.UI_STORAGE }}
+      SERVICES: courses assignments # the folder names under services/
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "OWNER=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV" # GHCR names must be lowercase
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Store each service's connection string as a Container App secret
+        env:
+          COURSES_DB_PASSWORD: ${{ secrets.COURSES_DB_PASSWORD }}
+          ASSIGNMENTS_DB_PASSWORD: ${{ secrets.ASSIGNMENTS_DB_PASSWORD }}
+        run: |
+          # Each service logs in as its own contained user, which only exists in its own database.
+          for svc in $SERVICES; do
+            password_var="${svc^^}_DB_PASSWORD"
+            url="mssql://${svc}_user:${!password_var}@$PREFIX-sql.database.windows.net:1433/$PREFIX-$svc-db"
+            az containerapp secret set --name "$PREFIX-$svc" --resource-group "$RESOURCE_GROUP" \
+              --secrets "database-url=$url" --output none
+          done
+
+      - name: Deploy the services (images tagged with this commit)
+        run: |
+          # GIT_SHA makes /health report which commit is running.
+          for svc in $SERVICES; do
+            az containerapp update --name "$PREFIX-$svc" --resource-group "$RESOURCE_GROUP" \
+              --image "ghcr.io/$OWNER/studyflow-$svc:$GITHUB_SHA" \
+              --set-env-vars "GIT_SHA=$GITHUB_SHA" "DATABASE_URL=secretref:database-url" --output none
+          done
+
+      - name: Generate the UI configuration
+        run: |
+          fqdn() {
+            az containerapp show --name "$PREFIX-$1" --resource-group "$RESOURCE_GROUP" \
+              --query properties.configuration.ingress.fqdn --output tsv
+          }
+          cat > ui/config.js <<JS
+          window.CONFIG = {
+            COURSES_URL: "https://$(fqdn courses)",
+            ASSIGNMENTS_URL: "https://$(fqdn assignments)"
+          };
+          JS
+          cat ui/config.js
+
+      - name: Deploy the UI to the storage static website
+        run: |
+          # shellcheck disable=SC2016 # '$web' is the container's real name, not a variable
+          az storage blob upload-batch --account-name "$UI_STORAGE" --auth-mode key \
+            --destination '$web' --source ui --overwrite --output none
+
+      - name: Check /health of each service
+        run: |
+          # The first request starts the container (min replicas 0) and may wake the
+          # paused serverless database, which can take about a minute.
+          for svc in $SERVICES; do
+            url="https://$(az containerapp show --name "$PREFIX-$svc" --resource-group "$RESOURCE_GROUP" \
+              --query properties.configuration.ingress.fqdn --output tsv)/health"
+            ok=0
+            for attempt in $(seq 1 24); do
+              code=$(curl --silent --output /tmp/health.json --write-out '%{http_code}' --max-time 20 "$url" || true)
+              echo "$svc attempt $attempt: HTTP $code"
+              if [ "$code" = "200" ]; then ok=1; cat /tmp/health.json; echo; break; fi
+              sleep 10
+            done
+            [ "$ok" = "1" ] || { echo "::error::$svc did not return 200 in time"; exit 1; }
+          done

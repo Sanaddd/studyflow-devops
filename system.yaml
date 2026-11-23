@@ -3,7 +3,7 @@
 # Validated against system.schema.json in CI. Must match the code and the deployment.
 student: shamad.ieu2024
 prefix: shamad-ieu2024
-public_url: https://shamadieu2024ui.z6.web.core.windows.net # confirmed after the first deploy
+public_url: https://shamadieu2024ui.z36.web.core.windows.net
 
 ui:
   path: ui
@@ -11,7 +11,7 @@ ui:
   calls: [courses, assignments]
 
 azure:
-  resource_group: shamad-ieu2024-rg
+  resource_group: rg-shamad-ieu2024
   container_apps_environment: shamad-ieu2024-env
   sql_server: shamad-ieu2024-sql
   registry: ghcr.io/sanaddd

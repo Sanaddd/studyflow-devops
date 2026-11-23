@@ -8,6 +8,7 @@ name: CI
 
 on:
   push:
+    branches-ignore: [main] # on main, cd.yml runs this workflow first, then deploys
   pull_request:
   workflow_call: # lets the CD workflow run this CI first and deploy only if it passes
 
