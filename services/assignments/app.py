@@ -103,6 +103,8 @@ def create_assignment():
         return jsonify({"error": "title, due_date, priority and course_id are required"}), 400
 
     # Reject bad values with a clear 400 instead of letting SQL Server fail with a 500
+    if len(title) > 200 or len(description) > 500:
+        return jsonify({"error": "title must be at most 200 characters and description at most 500"}), 400
     if priority not in PRIORITIES:
         return jsonify({"error": "priority must be Low, Medium or High"}), 400
     try:

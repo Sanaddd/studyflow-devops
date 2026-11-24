@@ -48,7 +48,7 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/CourseInput" }
         "400":
-          description: name or code missing
+          description: name or code missing, or longer than 200 / 50 characters
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
@@ -73,7 +73,12 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Course" }
         "400":
-          description: name or code missing
+          description: name or code missing, or longer than 200 / 50 characters
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404":
+          description: No course has this id
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }

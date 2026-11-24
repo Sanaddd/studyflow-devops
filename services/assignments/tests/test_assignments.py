@@ -116,6 +116,8 @@ def test_post_rejects_invalid_values():
         {"due_date": "tomorrow"},
         {"priority": "Whatever"},
         {"course_id": "abc"},
+        {"title": "x" * 201},
+        {"description": "x" * 501},
     ]
 
     for bad in bad_values:

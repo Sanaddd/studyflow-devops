@@ -64,6 +64,15 @@ def read_course_fields():
     return name, code
 
 
+def course_error(name, code):
+    # Checked here so bad input gets a clear 400, not a 500 from SQL Server
+    if not name or not code:
+        return "name and code are required"
+    if len(name) > 200 or len(code) > 50:
+        return "name must be at most 200 characters and code at most 50"
+    return None
+
+
 @app.get("/courses")
 def list_courses():
     return jsonify([dict(course) for course in get_all_courses()])
@@ -72,8 +81,9 @@ def list_courses():
 @app.post("/courses")
 def create_course():
     name, code = read_course_fields()
-    if not name or not code:
-        return jsonify({"error": "name and code are required"}), 400
+    error = course_error(name, code)
+    if error:
+        return jsonify({"error": error}), 400
 
     add_course(name, code)
     return jsonify({"name": name, "code": code}), 201
@@ -82,10 +92,12 @@ def create_course():
 @app.put("/courses/<int:course_id>")
 def edit_course(course_id):
     name, code = read_course_fields()
-    if not name or not code:
-        return jsonify({"error": "name and code are required"}), 400
+    error = course_error(name, code)
+    if error:
+        return jsonify({"error": error}), 400
 
-    update_course(course_id, name, code)
+    if not update_course(course_id, name, code):
+        return jsonify({"error": "course not found"}), 404
     return jsonify({"id": course_id, "name": name, "code": code})
 
 

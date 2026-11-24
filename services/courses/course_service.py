@@ -32,9 +32,11 @@ def update_course(course_id, name, code):
             "UPDATE courses SET name = %s, code = %s WHERE id = %s",
             (name, code, course_id),
         )
+        updated = cursor.rowcount > 0
         connection.commit()
     finally:
         connection.close()
+    return updated  # False when no course has this id
 
 
 def delete_course(course_id):
