@@ -53,7 +53,7 @@ services:
         url_env: COURSES_URL
         endpoints: ["GET /courses"]
         timeout_s: 2
-        on_failure: Assignments are still listed, with course_name null; the UI shows "Course unavailable" and a notice.
+        on_failure: Listing still works, with course_name null (the UI shows "Course unavailable" and a notice). Creating an assignment is refused with 503 and a clear message, and nothing is saved.
     azure:
       container_app: shamad-ieu2024-assignments
       sql_database: shamad-ieu2024-assignments-db

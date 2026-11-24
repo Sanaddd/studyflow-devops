@@ -63,9 +63,11 @@ def toggle_assignment_complete(assignment_id):
             """,
             (assignment_id,),
         )
+        toggled = cursor.rowcount > 0
         connection.commit()
     finally:
         connection.close()
+    return toggled  # False when no assignment has this id
 
 
 def delete_assignment(assignment_id):

@@ -1,6 +1,7 @@
 import os
 import time
 
+import pymssql
 from flask import Flask, g, jsonify, request
 
 from course_service import add_course, delete_course, get_all_courses, update_course
@@ -57,18 +58,40 @@ def health():
     return jsonify(body), 200 if db_ok else 503
 
 
+@app.errorhandler(pymssql.OperationalError)
+@app.errorhandler(pymssql.InterfaceError)
+def database_unavailable(error):
+    # The database stayed unreachable through every retry: a clear JSON error, not an HTML page
+    print(f"database unavailable: {error}", flush=True)
+    return jsonify({"error": "the database is unavailable, try again in a moment"}), 503
+
+
+def read_text(data, field):
+    """The field as a stripped string. Empty when it is missing, null or not text."""
+    value = data.get(field)
+    return value.strip() if isinstance(value, str) else ""
+
+
+def too_long(text, limit):
+    """True if the text does not fit an NVARCHAR(limit) column.
+
+    SQL Server counts UTF-16 units and an emoji takes two of them, so len() is not enough.
+    """
+    return len(text.encode("utf-16-le", "surrogatepass")) // 2 > limit
+
+
 def read_course_fields():
-    data = request.get_json(silent=True) or {}
-    name = str(data.get("name", "")).strip()
-    code = str(data.get("code", "")).strip()
-    return name, code
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):  # no body, invalid JSON, or JSON that is not an object
+        data = {}
+    return read_text(data, "name"), read_text(data, "code")
 
 
 def course_error(name, code):
     # Checked here so bad input gets a clear 400, not a 500 from SQL Server
     if not name or not code:
         return "name and code are required"
-    if len(name) > 200 or len(code) > 50:
+    if too_long(name, 200) or too_long(code, 50):
         return "name must be at most 200 characters and code at most 50"
     return None
 

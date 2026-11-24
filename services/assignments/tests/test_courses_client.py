@@ -10,7 +10,7 @@ import courses_client
 
 
 class FakeCourses(BaseHTTPRequestHandler):
-    mode = "ok"  # "ok", "slow" or "error"
+    mode = "ok"  # "ok", "slow", "error" or "wrong-shape"
 
     def do_GET(self):
         if self.mode == "slow":
@@ -20,6 +20,8 @@ class FakeCourses(BaseHTTPRequestHandler):
             self.end_headers()
             return
         body = json.dumps([{"id": 1, "name": "Software Development", "code": "SDD"}]).encode()
+        if self.mode == "wrong-shape":
+            body = json.dumps({"error": "not a list of courses"}).encode()
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
         self.end_headers()
@@ -58,6 +60,13 @@ def test_slow_service_times_out(fake_courses, monkeypatch):
 
 def test_error_status_is_unavailable(fake_courses):
     fake_courses.mode = "error"
+
+    with pytest.raises(courses_client.CoursesUnavailable):
+        courses_client.fetch_course_names()
+
+
+def test_unexpected_body_is_unavailable(fake_courses):
+    fake_courses.mode = "wrong-shape"
 
     with pytest.raises(courses_client.CoursesUnavailable):
         courses_client.fetch_course_names()

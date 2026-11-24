@@ -1,4 +1,6 @@
-import app  # noqa: F401  (importing the app applies the migrations)
+import pymssql
+
+import app  # importing the app applies the migrations
 import course_service
 import database
 
@@ -59,13 +61,23 @@ def test_post_and_put_reject_invalid_input():
         {"name": "A", "code": "  "},
         {"name": "x" * 201, "code": "X"},
         {"name": "A", "code": "x" * 51},
+        {"name": "\U0001F4DA" * 101, "code": "X"},  # an emoji takes two UTF-16 units in NVARCHAR(200)
+        {"name": None, "code": "X"},
+        {"name": 123, "code": "X"},
+        {"name": "A", "code": ["X"]},
+        ["not", "an", "object"],
+        "text",
+        5,
     ]
     for body in bad_bodies:
-        assert client.post("/courses", json=body).status_code == 400
-        assert client.put(f"/courses/{course_id}", json=body).status_code == 400
+        assert client.post("/courses", json=body).status_code == 400, body
+        assert client.put(f"/courses/{course_id}", json=body).status_code == 400, body
 
     assert client.post("/courses", data="not json").status_code == 400
+    assert client.post("/courses").status_code == 400
     assert len(course_service.get_all_courses()) == 1
+    # A rejected PUT changes nothing
+    assert course_service.get_all_courses()[0]["name"] == "Artificial Intelligence"
 
 
 def test_put_unknown_course_returns_404():
@@ -73,3 +85,28 @@ def test_put_unknown_course_returns_404():
 
     assert response.status_code == 404
     assert response.get_json() == {"error": "course not found"}
+
+
+def test_post_and_delete_routes():
+    client = app.app.test_client()
+
+    response = client.post("/courses", json={"name": "  DevOps  ", "code": "DEVOPS"})
+    assert response.status_code == 201
+    assert response.get_json() == {"name": "DevOps", "code": "DEVOPS"}  # spaces around the text are removed
+
+    course_id = course_service.get_all_courses()[0]["id"]
+    assert client.delete(f"/courses/{course_id}").status_code == 204
+    assert client.delete(f"/courses/{course_id}").status_code == 204  # deleting twice is not an error
+    assert course_service.get_all_courses() == []
+
+
+def test_database_down_gives_a_json_503(monkeypatch):
+    def no_database():
+        raise pymssql.OperationalError("database unavailable")
+
+    monkeypatch.setattr(course_service, "get_connection", no_database)
+
+    response = app.app.test_client().get("/courses")
+
+    assert response.status_code == 503
+    assert response.get_json() == {"error": "the database is unavailable, try again in a moment"}

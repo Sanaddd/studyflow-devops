@@ -25,9 +25,8 @@ def fetch_course_names():
     try:
         with urllib.request.urlopen(f"{COURSES_URL}/courses", timeout=COURSES_TIMEOUT_S) as response:
             courses = json.load(response)
-    except (OSError, ValueError) as error:
+        return {course["id"]: course["name"] for course in courses}
+    except (OSError, ValueError, KeyError, TypeError) as error:
         # OSError covers connection refused, DNS failure, timeouts and HTTP error statuses;
-        # ValueError covers a body that is not valid JSON
+        # ValueError a body that is not valid JSON; KeyError and TypeError a body of the wrong shape
         raise CoursesUnavailable(str(error)) from error
-
-    return {course["id"]: course["name"] for course in courses}

@@ -1,6 +1,6 @@
 # StudyFlow
 
-StudyFlow is a small student planner app I am building for my DevOps assignment.
+StudyFlow is a small student planner app I built for my DevOps assignment.
 
 Note: commits in this repo show two GitHub accounts, Sanaddd and sanadhamadd. Both are mine. The older commits used my personal email.
 
@@ -77,6 +77,10 @@ Data is kept between restarts. `docker compose down -v` deletes it.
 
 Lint, unit tests and coverage, from inside a service folder. Tests run against a throwaway SQL Server: each run creates its own database and drops it at the end.
 
+Start a throwaway SQL Server first:
+
+    docker run -d --name sf-test-sql -e ACCEPT_EULA=Y -e MSSQL_SA_PASSWORD='<password>' -p 1433:1433 mcr.microsoft.com/mssql/server:2022-latest
+
     export TEST_SQLSERVER_URL="mssql://sa:<password>@localhost:1433/master"
     ruff check .
     python -m pytest --cov        # fails if coverage is below 70%
@@ -84,9 +88,10 @@ Lint, unit tests and coverage, from inside a service folder. Tests run against a
 Integration test across both services, from the repository root, with the system running:
 
     docker compose up --build -d
+    pip install pytest
     python -m pytest tests/integration -v
 
-It checks that assignments get course names from the courses service, and that they still load, without names, when the courses service is stopped.
+It checks that assignments get course names from the courses service, that an unknown course is refused, and that with the courses service stopped assignments still load without names and creating one gets a clear 503.
 
 ## Configuration
 
@@ -114,6 +119,7 @@ On every push to main, `.github/workflows/cd.yml` runs CI, then points both Cont
 
     P=shamad-ieu2024; RG=rg-$P; LOC=polandcentral
     az account set --subscription "Azure for Students"
+    az provider register -n Microsoft.App   # the same for Microsoft.OperationalInsights, Microsoft.Sql, Microsoft.Storage and Microsoft.ManagedIdentity
     az group create -n $RG -l $LOC
 
     # UI: storage static website
@@ -149,3 +155,5 @@ On every push to main, `.github/workflows/cd.yml` runs CI, then points both Cont
     # Reader on the resource group for amartini@faculty.ie.edu and bserra@faculty.ie.edu
 
 After this, only the pipeline changes anything. The first request after an idle period can take about a minute while the container starts and the database resumes; the UI shows "starting up" and retries.
+
+After the first deploy, make the two GHCR packages public (GitHub → Packages → Package settings → Change visibility).

@@ -26,5 +26,8 @@ ENV PORT=8000
 
 EXPOSE 8000
 
-# Shell form via sh -c so ${PORT} is expanded at runtime; exec makes gunicorn PID 1
-CMD ["sh", "-c", "exec gunicorn --bind 0.0.0.0:${PORT} --workers 2 app:app"]
+# Shell form via sh -c so ${PORT} is expanded at runtime; exec makes gunicorn PID 1.
+# --timeout 120: a request that has to wait for the paused Azure database to resume
+# (the retries in database.py take up to about 100 s) must not be killed by gunicorn's
+# default 30 s worker timeout.
+CMD ["sh", "-c", "exec gunicorn --bind 0.0.0.0:${PORT} --workers 2 --timeout 120 app:app"]

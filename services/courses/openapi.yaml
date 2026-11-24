@@ -4,7 +4,7 @@ info:
   version: 1.0.0
   description: >
     Owns the courses domain and its own database. The assignments service calls
-    GET /courses to show course names.
+    GET /courses to show course names and to check that a course exists.
 
 paths:
   /health:
@@ -25,7 +25,9 @@ paths:
   /courses:
     get:
       summary: List all courses, ordered by name
-      description: Also called by the assignments service to look up course names.
+      description: >
+        Also called by the assignments service, to look up course names and to
+        check that a course exists.
       responses:
         "200":
           description: All courses
@@ -34,6 +36,7 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/Course" }
+        "503": { $ref: "#/components/responses/DatabaseUnavailable" }
     post:
       summary: Create a course
       requestBody:
@@ -47,11 +50,8 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/CourseInput" }
-        "400":
-          description: name or code missing, or longer than 200 / 50 characters
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/Error" }
+        "400": { $ref: "#/components/responses/InvalidCourse" }
+        "503": { $ref: "#/components/responses/DatabaseUnavailable" }
 
   /courses/{course_id}:
     parameters:
@@ -72,16 +72,13 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Course" }
-        "400":
-          description: name or code missing, or longer than 200 / 50 characters
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/Error" }
+        "400": { $ref: "#/components/responses/InvalidCourse" }
         "404":
           description: No course has this id
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
+        "503": { $ref: "#/components/responses/DatabaseUnavailable" }
     delete:
       summary: Delete a course
       description: >
@@ -90,8 +87,22 @@ paths:
       responses:
         "204":
           description: Course deleted (or did not exist)
+        "503": { $ref: "#/components/responses/DatabaseUnavailable" }
 
 components:
+  responses:
+    InvalidCourse:
+      description: >
+        The body is not a JSON object, name or code is missing or not text, or
+        name is longer than 200 characters or code longer than 50
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    DatabaseUnavailable:
+      description: The service's own database stayed unreachable through every connection retry
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
   schemas:
     Course:
       type: object
@@ -104,8 +115,8 @@ components:
       type: object
       required: [name, code]
       properties:
-        name: { type: string, example: Software Development }
-        code: { type: string, example: SDD }
+        name: { type: string, minLength: 1, maxLength: 200, example: Software Development }
+        code: { type: string, minLength: 1, maxLength: 50, example: SDD }
     Health:
       type: object
       required: [status, db, version]

@@ -38,7 +38,7 @@ Consequences: The table stays simple and easy to understand. It also gives each 
 
 ## 4. Focus testing on the core service logic
 Date: 2026-10-09
-Status: Decided
+Status: Superseded by 9
 
 Context: The assignment requires automated tests for the core business logic of both feature domains with at least 70% coverage.
 
@@ -68,7 +68,7 @@ Context: Assignment 2 requires one service per feature domain, each with its own
 
 Decision: I split the app into services/courses and services/assignments, each with its own Flask JSON API, database and Dockerfile. Assignments keep course_id as a plain id; the JOIN on courses was removed because that table now belongs to the courses service. ADR-2's seam held without moving.
 
-Alternatives considered: I considered keeping one shared database with both tables, but rejected it because the assignment requires a database per service and a shared database would keep the two domains coupled.
+Alternatives considered: I considered keeping one shared database with both tables, but rejected it because the assignment requires a database per service and a shared database would keep the two domains coupled. I also considered joining the data in the UI by calling both services from the browser, but kept the flow on the server so the assignments API returns complete data and handles the courses service being down in one place. Only course_id crosses the seam; GET /courses returns ids and names.
 
 Consequences: The services can be built, tested and deployed separately. Assignments can no longer show the course name by themselves, so that now needs an HTTP call to the courses service, and the database no longer guarantees that a course_id points to a real course.
 
@@ -82,7 +82,19 @@ Decision: Each service has its own database and a migrations folder of numbered 
 
 Alternatives considered: I considered Alembic, but rejected it because a small runner over plain SQL files is easier for me to read and explain, and the project only needs forward migrations.
 
-Consequences: The database no longer stops an assignment from pointing to a course that does not exist; this has to be handled in code and in how the UI shows a missing course. Migrations are forward-only: a bad migration is fixed with a new migration, never by editing an applied one, and if data is damaged the Azure SQL database is restored from its automatic point-in-time backup.
+Consequences: The database no longer stops an assignment from pointing to a course that does not exist; this has to be handled in code and in how the UI shows a missing course. Migrations are forward-only: a bad migration is fixed with a new migration, never by editing an applied one, and if data is damaged the Azure SQL database is restored from its automatic point-in-time backup. Nothing had to be copied: Assignment 1 had no production data, so each database started empty from its own 001 migration. To make up for the lost foreign key, the assignments service asks the courses service whether a course exists before saving an assignment; a course deleted later shows as "Unknown course". A migration that fails is rolled back as a whole, so the service does not start on a half-changed schema.
+
+## 8. Hosting on Azure: serverless and scale to zero
+Date: 2026-11-23
+Status: Decided
+
+Context: Assignment 2 deploys the system to my own Azure for Students subscription, which has limited credit, and asks for a pipeline that deploys every change to main without stored Azure passwords.
+
+Decision: Each service runs as a Container App with 0 to 1 replicas, and each has its own serverless Azure SQL database on the free offer, which pauses after an hour without use. The UI is a static website on Azure Storage. The CD workflow signs in with a managed identity through OIDC, deploys the images tagged with the commit SHA, builds each connection string from GitHub secrets, and waits for /health on both services.
+
+Alternatives considered: I considered keeping one replica always running, but rejected it because it uses credit even when nobody is using the app. I also considered App Service for the UI, but a storage static website is enough for HTML, CSS and JS.
+
+Consequences: An idle system costs almost nothing. Container Apps bill per vCPU-second, GiB-second and request, with a monthly free grant; the databases bill per vCore-second only while running and nothing for compute while paused; storage bills per GB and transaction; GHCR is free. The cost is cold starts: the first request after a quiet period starts the container and may wake the database, which took about 58 s when I measured it. The services retry the connection with backoff (1, 2, 4, 8, 15 s, up to 8 attempts), gunicorn allows a request 120 s, and the UI shows a "starting up" message and retries. Max 1 replica means the migrations that run at startup never run twice at the same time. At 100x traffic I would allow more replicas, move migrations out of startup into a pipeline step, keep one replica and the database always on, and cache course names.
 
 ## 9. What CI checks before anything is published
 Date: 2026-11-22
@@ -95,18 +107,6 @@ Decision: CI runs four jobs. Per service: ruff lint, unit tests against a throwa
 Alternatives considered: I considered testing the cross-service call only with a stub of the courses service, but rejected it as the only test because it would not prove the two real containers can talk on the compose network. Stubs are still used in the unit tests, where they keep the tests fast.
 
 Consequences: A broken build, a failing test, low coverage or an invalid system.yaml stops the pipeline before any image is published. Not tested automatically: the browser UI, which I check by hand, and the Azure deployment itself, which is checked by the post-deploy /health step instead.
-
-## 8. Hosting on Azure: serverless and scale to zero
-Date: 2026-11-23
-Status: Decided
-
-Context: Assignment 2 deploys the system to my own Azure for Students subscription, which has limited credit, and asks for a pipeline that deploys every change to main without stored Azure passwords.
-
-Decision: Each service runs as a Container App with 0 to 1 replicas, and each has its own serverless Azure SQL database on the free offer, which pauses after an hour without use. The UI is a static website on Azure Storage. The CD workflow signs in with a managed identity through OIDC, deploys the images tagged with the commit SHA, builds each connection string from GitHub secrets, and waits for /health on both services.
-
-Alternatives considered: I considered keeping one replica always running, but rejected it because it uses credit even when nobody is using the app. I also considered App Service for the UI, but a storage static website is enough for HTML, CSS and JS.
-
-Consequences: An idle system costs almost nothing, but the first request after a quiet period is slow: the container has to start and the database may have to resume, which takes about a minute. The services retry the database connection, and the UI shows a "starting up" message and retries on its own.
 
 ## 10. Not built: a cache for course names
 Date: 2026-11-24
