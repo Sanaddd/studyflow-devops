@@ -107,3 +107,15 @@ Decision: Each service runs as a Container App with 0 to 1 replicas, and each ha
 Alternatives considered: I considered keeping one replica always running, but rejected it because it uses credit even when nobody is using the app. I also considered App Service for the UI, but a storage static website is enough for HTML, CSS and JS.
 
 Consequences: An idle system costs almost nothing, but the first request after a quiet period is slow: the container has to start and the database may have to resume, which takes about a minute. The services retry the database connection, and the UI shows a "starting up" message and retries on its own.
+
+## 10. Not built: a cache for course names
+Date: 2026-11-24
+Status: Decided
+
+Context: Every GET /assignments asks the courses service for course names. When courses is down, starting up or slow, assignments come back without names. A cache would let the assignments service show the last known names instead, but Assignment 2 puts Redis and extra containers out of scope.
+
+Decision: I did not build a cache. The assignments service asks courses every time, and if that fails within 2 seconds it returns the assignments with course_name null, and the UI shows "Course unavailable".
+
+Alternatives considered: An in-memory cache in the assignments service needs no extra container, but with scale to zero the container stops when idle, so the cache would be empty right after a cold start, when it matters most. A separate Redis would survive that, but it costs money while idle and adds a third container.
+
+Consequences: Course names are always current, but missing while courses is unavailable. A cache becomes worth building if traffic grew a lot (every assignment list also loads courses), or if users often saw "Course unavailable". I would start with a short in-memory cache and only add Redis if a service ran more than one replica.

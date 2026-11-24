@@ -2,6 +2,8 @@
 
 StudyFlow is a small student planner app I am building for my DevOps assignment.
 
+Note: commits in this repo show two GitHub accounts, Sanaddd and sanadhamadd. Both are mine. The older commits used my personal email.
+
 The idea is to have one simple place where a student can keep track of their courses and the assignments linked to them.
 
 The project has two main parts:
@@ -11,11 +13,11 @@ The project has two main parts:
 
 Each part runs as its own service with its own SQL Server database.
 
-## What I plan to build
+## What it does
 
-For courses, I want the user to be able to add, view, edit, and delete courses.
+For courses, the user can add, view, edit, and delete courses.
 
-For assignments, the user should be able to add an assignment, link it to a course, give it a due date and priority, and mark it as completed.
+For assignments, the user can add an assignment with an optional description, link it to a course, give it a due date and priority, and mark it as completed.
 
 ## Tech used
 
@@ -26,13 +28,9 @@ For assignments, the user should be able to add an assignment, link it to a cour
 - pytest
 - pytest-cov
 
-## Current progress
-
-The basic Flask app is set up and running locally.
-
 ## Project structure (Assignment 2)
 
-StudyFlow is being split into two services along the seam from ADR-2:
+StudyFlow is split into two services along the seam from ADR-2:
 
     services/
       courses/        Courses domain: own Flask app, own database, own Dockerfile
@@ -54,6 +52,8 @@ Each service needs a SQL Server database, given as `DATABASE_URL`:
     python app.py                  # listens on PORT, default 8000
 
 On startup the service applies any pending migrations from its `migrations/` folder.
+
+Migrations so far: courses `001_init.sql`; assignments `001_init.sql` and `002_add_description.sql`, which adds a description column and gives existing rows an empty one.
 
 ## Running a service in Docker
 

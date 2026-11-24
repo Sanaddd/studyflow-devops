@@ -12,7 +12,7 @@ def test_migrations_are_recorded():
     versions = [row[0] for row in cursor.fetchall()]
     connection.close()
 
-    assert versions[0] == "001_init.sql"
+    assert versions == ["001_init.sql", "002_add_description.sql"]
 
 
 def test_second_run_applies_nothing():
@@ -50,3 +50,22 @@ def test_connect_gives_up_after_last_attempt(monkeypatch):
 
     with pytest.raises(pymssql.OperationalError):
         database.connect_with_retry(attempts=3)
+
+
+def test_migration_002_keeps_existing_rows():
+    # Recreate the state before 002 on a scratch table: a row inserted without a description,
+    # then the same ALTER as 002. The old row must survive with the default ''.
+    connection = database.connect()
+    cursor = connection.cursor()
+    cursor.execute("IF OBJECT_ID('m002_check') IS NOT NULL DROP TABLE m002_check")
+    cursor.execute("CREATE TABLE m002_check (id INT IDENTITY(1,1) PRIMARY KEY, title NVARCHAR(200) NOT NULL)")
+    cursor.execute("INSERT INTO m002_check (title) VALUES ('Old row')")
+    alter = (database.MIGRATIONS_DIR / "002_add_description.sql").read_text()
+    cursor.execute(alter.replace("assignments", "m002_check"))
+    cursor.execute("SELECT title, description FROM m002_check")
+    rows = cursor.fetchall()
+    cursor.execute("DROP TABLE m002_check")
+    connection.commit()
+    connection.close()
+
+    assert rows == [("Old row", "")]

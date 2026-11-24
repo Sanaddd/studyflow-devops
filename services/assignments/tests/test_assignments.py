@@ -85,3 +85,23 @@ def test_overdue_assignment():
     assignments = assignment_service.get_all_assignments()
 
     assert assignments[0]["overdue"] is True
+
+
+def test_description_defaults_to_empty():
+    assignment_service.add_assignment("No description", "2026-10-20", "Low", COURSE_ID)
+
+    assert assignment_service.get_all_assignments()[0]["description"] == ""
+
+
+def test_post_assignment_with_description():
+    client = app.app.test_client()
+
+    response = client.post(
+        "/assignments",
+        json={"title": "Report", "description": "ADRs and diagrams", "due_date": "2026-12-01",
+              "priority": "High", "course_id": COURSE_ID},
+    )
+
+    assert response.status_code == 201
+    assert response.get_json()["description"] == "ADRs and diagrams"
+    assert assignment_service.get_all_assignments()[0]["description"] == "ADRs and diagrams"
