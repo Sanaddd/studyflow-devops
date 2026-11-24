@@ -9,7 +9,7 @@ def get_all_assignments():
         cursor = connection.cursor(as_dict=True)
         cursor.execute(
             """
-            SELECT id, title, due_date, priority, completed, course_id
+            SELECT id, title, description, due_date, priority, completed, course_id
             FROM assignments
             ORDER BY due_date
             """
@@ -35,16 +35,16 @@ def get_all_assignments():
     return assignment_list
 
 
-def add_assignment(title, due_date, priority, course_id):
+def add_assignment(title, due_date, priority, course_id, description=""):
     connection = get_connection()
     try:
         cursor = connection.cursor()
         cursor.execute(
             """
-            INSERT INTO assignments (title, due_date, priority, course_id)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO assignments (title, description, due_date, priority, course_id)
+            VALUES (%s, %s, %s, %s, %s)
             """,
-            (title, due_date, priority, course_id),
+            (title, description, due_date, priority, course_id),
         )
         connection.commit()
     finally:

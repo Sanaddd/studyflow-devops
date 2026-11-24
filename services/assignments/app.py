@@ -93,12 +93,19 @@ def create_assignment():
     due_date = data.get("due_date")
     priority = data.get("priority")
     course_id = data.get("course_id")
+    description = str(data.get("description", "")).strip()  # optional, added by migration 002
 
     if not (title and due_date and priority and course_id):
         return jsonify({"error": "title, due_date, priority and course_id are required"}), 400
 
-    add_assignment(title, due_date, priority, int(course_id))
-    created = {"title": title, "due_date": due_date, "priority": priority, "course_id": int(course_id)}
+    add_assignment(title, due_date, priority, int(course_id), description)
+    created = {
+        "title": title,
+        "description": description,
+        "due_date": due_date,
+        "priority": priority,
+        "course_id": int(course_id),
+    }
     return jsonify(created), 201
 
 

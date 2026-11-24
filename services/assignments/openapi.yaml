@@ -87,10 +87,11 @@ components:
   schemas:
     Assignment:
       type: object
-      required: [id, title, due_date, priority, completed, course_id, overdue, course_name]
+      required: [id, title, description, due_date, priority, completed, course_id, overdue, course_name]
       properties:
         id: { type: integer, example: 1 }
         title: { type: string, example: Assignment 2 }
+        description: { type: string, description: "Added by migration 002; empty string for older rows", example: Report and ADRs }
         due_date: { type: string, format: date, example: "2026-12-01" }
         priority: { type: string, enum: [Low, Medium, High] }
         completed: { type: boolean }
@@ -106,6 +107,7 @@ components:
       required: [title, due_date, priority, course_id]
       properties:
         title: { type: string, example: Assignment 2 }
+        description: { type: string, description: "Optional, defaults to an empty string", example: Report and ADRs }
         due_date: { type: string, format: date, example: "2026-12-01" }
         priority: { type: string, enum: [Low, Medium, High] }
         course_id: { type: integer, example: 1 }

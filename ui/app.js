@@ -90,7 +90,9 @@ function el(tag, props = {}, children = []) {
     const element = document.createElement(tag);
     Object.assign(element, props);
     for (const child of children) {
-        element.append(child);
+        if (child !== null) {
+            element.append(child); // null marks an optional part that is not shown
+        }
     }
     return element;
 }
@@ -219,6 +221,9 @@ function renderAssignmentList() {
             className: assignment.completed ? "assignment-item assignment-complete" : "assignment-item"
         }, [
             el("p", { className: "assignment-title", textContent: assignment.title }),
+            assignment.description
+                ? el("p", { className: "assignment-description", textContent: assignment.description })
+                : null,
             el("p", { className: "assignment-course", textContent: courseName(assignment) }),
             el("div", { className: "assignment-meta" }, badges),
             el("div", { className: "assignment-actions" }, [toggleButton, deleteButton])
@@ -302,6 +307,7 @@ document.getElementById("assignmentForm").addEventListener("submit", event => {
         method: "POST",
         body: JSON.stringify({
             title: field("title"),
+            description: field("description"),
             due_date: field("due_date"),
             priority: field("priority"),
             course_id: Number(field("course_id"))
