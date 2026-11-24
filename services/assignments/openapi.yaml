@@ -54,7 +54,7 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/AssignmentInput" }
         "400":
-          description: A required field is missing
+          description: A required field is missing, priority is not Low/Medium/High, or due_date or course_id is invalid
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }

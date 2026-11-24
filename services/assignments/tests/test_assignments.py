@@ -105,3 +105,22 @@ def test_post_assignment_with_description():
     assert response.status_code == 201
     assert response.get_json()["description"] == "ADRs and diagrams"
     assert assignment_service.get_all_assignments()[0]["description"] == "ADRs and diagrams"
+
+
+def test_post_rejects_invalid_values():
+    client = app.app.test_client()
+    valid = {"title": "Report", "due_date": "2026-12-01", "priority": "High", "course_id": COURSE_ID}
+
+    bad_values = [
+        {"due_date": "notadate"},
+        {"due_date": "tomorrow"},
+        {"priority": "Whatever"},
+        {"course_id": "abc"},
+    ]
+
+    for bad in bad_values:
+        response = client.post("/assignments", json={**valid, **bad})
+        assert response.status_code == 400
+        assert "error" in response.get_json()
+
+    assert assignment_service.get_all_assignments() == []

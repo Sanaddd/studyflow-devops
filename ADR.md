@@ -26,7 +26,7 @@ Consequences: The app is still one monolithic application, but the two areas are
 
 ## 3. Store courses in a simple SQLite table
 Date: 2026-10-06
-Status: Decided
+Status: Superseded by 7
 
 Context: I needed a simple way to store course data that would work locally and also fit the assignment requirement to use SQLite.
 

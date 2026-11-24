@@ -1,5 +1,6 @@
 import os
 import time
+from datetime import date
 
 from flask import Flask, g, jsonify, request
 
@@ -16,6 +17,9 @@ app = Flask(__name__)
 
 # Bring the schema up to date before serving any request
 run_migrations()
+
+
+PRIORITIES = ("Low", "Medium", "High")
 
 
 # Version of the running code: the commit SHA, set by the pipeline. "dev" when run locally.
@@ -98,13 +102,22 @@ def create_assignment():
     if not (title and due_date and priority and course_id):
         return jsonify({"error": "title, due_date, priority and course_id are required"}), 400
 
-    add_assignment(title, due_date, priority, int(course_id), description)
+    # Reject bad values with a clear 400 instead of letting SQL Server fail with a 500
+    if priority not in PRIORITIES:
+        return jsonify({"error": "priority must be Low, Medium or High"}), 400
+    try:
+        date.fromisoformat(str(due_date))
+        course_id = int(course_id)
+    except ValueError:
+        return jsonify({"error": "due_date must be YYYY-MM-DD and course_id a number"}), 400
+
+    add_assignment(title, due_date, priority, course_id, description)
     created = {
         "title": title,
         "description": description,
         "due_date": due_date,
         "priority": priority,
-        "course_id": int(course_id),
+        "course_id": course_id,
     }
     return jsonify(created), 201
 
