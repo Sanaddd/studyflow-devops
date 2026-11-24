@@ -69,3 +69,27 @@ def test_migration_002_keeps_existing_rows():
     connection.close()
 
     assert rows == [("Old row", "")]
+
+
+def test_failed_migration_is_rolled_back(monkeypatch, tmp_path):
+    # A migration that fails half way leaves nothing behind and is not recorded,
+    # so the service refuses to start instead of running on a half-changed schema
+    (tmp_path / "999_broken.sql").write_text(
+        "CREATE TABLE half_done (id INT);\nGO\nALTER TABLE table_that_does_not_exist ADD x INT;\n"
+    )
+    monkeypatch.setattr(database, "MIGRATIONS_DIR", tmp_path)
+
+    with pytest.raises(pymssql.Error):
+        database.run_migrations()
+
+    connection = database.connect()
+    cursor = connection.cursor()
+    cursor.execute("SELECT OBJECT_ID('half_done')")
+    half_done_table = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(*) FROM schema_migrations WHERE version = '999_broken.sql'")
+    times_recorded = cursor.fetchone()[0]
+    connection.close()
+
+    assert half_done_table is None
+    assert times_recorded == 0
+

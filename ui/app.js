@@ -38,10 +38,18 @@ async function api(url, options = {}) {
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
+            // The services answer errors with {"error": "..."}: show that text to the user
+            const body = await response.json().catch(() => null);
+            throw new Error(body?.error ?? `HTTP ${response.status}`);
         }
 
         return response.status === 204 ? null : await response.json();
+    } catch (error) {
+        // fetch itself failed: the timeout above (AbortError) or no connection (TypeError)
+        if (error.name === "AbortError" || error instanceof TypeError) {
+            throw new Error("the service did not answer. It may be starting up: try again in a moment.");
+        }
+        throw error;
     } finally {
         clearTimeout(timer);
     }

@@ -3,14 +3,16 @@
 Run from the repository root after `docker compose up --build -d`:
     python -m pytest tests/integration -v
 
-It checks the one flow that crosses the services: the assignments service asks the
-courses service for course names. Then it stops the courses service to check that
-assignments still answer, quickly and without course names.
+It checks the calls that cross the services: the assignments service asks the courses
+service for course names, and checks that a course exists before saving an assignment.
+Then it stops the courses service to check that assignments still list, quickly and
+without course names, and that creating one is refused with a clear error.
 """
 import json
 import os
 import subprocess
 import time
+import urllib.error
 import urllib.request
 import uuid
 
@@ -19,11 +21,18 @@ ASSIGNMENTS = os.environ.get("ASSIGNMENTS_BASE", "http://localhost:8002")
 
 
 def request(method, url, body=None):
+    """Return (status, JSON body). An HTTP error status is returned, not raised."""
     data = json.dumps(body).encode() if body is not None else None
     req = urllib.request.Request(url, data=data, method=method, headers={"Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=10) as response:
-        text = response.read()
-        return response.status, json.loads(text) if text else None
+    try:
+        with urllib.request.urlopen(req, timeout=10) as response:
+            status, text = response.status, response.read()
+    except urllib.error.HTTPError as error:
+        status, text = error.code, error.read()
+    try:
+        return status, json.loads(text) if text else None
+    except ValueError:
+        return status, None
 
 
 def compose(*args):
@@ -54,16 +63,22 @@ def test_assignment_shows_course_name_and_survives_courses_outage():
     request("POST", f"{COURSES}/courses", {"name": "Integration Course", "code": code})
     course = next(c for c in request("GET", f"{COURSES}/courses")[1] if c["code"] == code)
 
-    # 2. Create an assignment for it in the assignments service (it only stores the id)
-    request("POST", f"{ASSIGNMENTS}/assignments",
-            {"title": title, "due_date": "2030-01-01", "priority": "Low", "course_id": course["id"]})
+    # 2. Create an assignment for it in the assignments service (it only stores the id).
+    #    The assignments service first asks the courses service whether the course exists.
+    new_assignment = {"title": title, "due_date": "2030-01-01", "priority": "Low", "course_id": course["id"]}
+    assert request("POST", f"{ASSIGNMENTS}/assignments", new_assignment)[0] == 201
 
     # 3. The assignments service fetched the name from the courses service over HTTP
     _, assignments = request("GET", f"{ASSIGNMENTS}/assignments")
     mine = next(a for a in assignments if a["title"] == title)
     assert mine["course_name"] == "Integration Course"
 
-    # 4. With the courses service stopped, assignments still answer quickly, without names
+    # 4. A course id that the courses service does not know is refused
+    status, body = request("POST", f"{ASSIGNMENTS}/assignments", {**new_assignment, "course_id": 2000000000})
+    assert status == 400
+    assert body == {"error": "course_id does not match an existing course"}
+
+    # 5. With the courses service stopped, assignments still answer quickly, without names
     compose("stop", "courses")
     try:
         started = time.perf_counter()
@@ -74,6 +89,15 @@ def test_assignment_shows_course_name_and_survives_courses_outage():
         assert status == 200
         assert mine["course_name"] is None
         assert elapsed < 5  # bounded by the 2 s timeout, never a hung request
+
+        # Creating an assignment needs the course check: refused quickly, with a clear error
+        started = time.perf_counter()
+        second = {**new_assignment, "title": f"{title} second"}
+        status, body = request("POST", f"{ASSIGNMENTS}/assignments", second)
+        assert status == 503
+        assert "courses service is unavailable" in body["error"]
+        assert time.perf_counter() - started < 5
+        assert all(a["title"] != second["title"] for a in request("GET", f"{ASSIGNMENTS}/assignments")[1])
 
         # The assignments service's own health does not depend on the courses service
         assert request("GET", f"{ASSIGNMENTS}/health")[0] == 200

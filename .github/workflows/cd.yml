@@ -3,7 +3,7 @@
 # - ci:     runs ci.yml, which tests and pushes the images tagged with this commit's SHA
 # - deploy: points both Container Apps at those images, writes ui/config.js with
 #           the services' Azure addresses, uploads ui/ to the storage static website,
-#           then waits until /health of both services returns 200
+#           then waits until /health of both services returns 200 for this commit
 name: CD
 
 on:
@@ -92,15 +92,19 @@ jobs:
         run: |
           # The first request starts the container (min replicas 0) and may wake the
           # paused serverless database, which can take about a minute.
+          # A 200 from the previous revision is not enough: /health must also report
+          # this commit's SHA, which proves the new image is the one answering.
           for svc in $SERVICES; do
             url="https://$(az containerapp show --name "$PREFIX-$svc" --resource-group "$RESOURCE_GROUP" \
               --query properties.configuration.ingress.fqdn --output tsv)/health"
             ok=0
             for attempt in $(seq 1 24); do
+              rm -f /tmp/health.json
               code=$(curl --silent --output /tmp/health.json --write-out '%{http_code}' --max-time 20 "$url" || true)
-              echo "$svc attempt $attempt: HTTP $code"
-              if [ "$code" = "200" ]; then ok=1; cat /tmp/health.json; echo; break; fi
+              version=$(jq -r '.version // empty' /tmp/health.json 2>/dev/null || true)
+              echo "$svc attempt $attempt: HTTP $code, version ${version:-unknown}"
+              if [ "$code" = "200" ] && [ "$version" = "$GITHUB_SHA" ]; then ok=1; cat /tmp/health.json; echo; break; fi
               sleep 10
             done
-            [ "$ok" = "1" ] || { echo "::error::$svc did not return 200 in time"; exit 1; }
+            [ "$ok" = "1" ] || { echo "::error::$svc did not return 200 for this commit in time"; exit 1; }
           done

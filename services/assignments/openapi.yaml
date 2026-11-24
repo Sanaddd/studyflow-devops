@@ -4,8 +4,9 @@ info:
   version: 1.0.0
   description: >
     Owns the assignments domain and its own database. Assignments store only a
-    course_id; GET /assignments asks the courses service (GET /courses) for the
-    course names.
+    course_id. The service calls GET /courses on the courses service in two places:
+    GET /assignments, to add the course names, and POST /assignments, to check that
+    the course exists.
 
 paths:
   /health:
@@ -40,8 +41,13 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/Assignment" }
+        "503": { $ref: "#/components/responses/DatabaseUnavailable" }
     post:
       summary: Create an assignment
+      description: >
+        Before saving, the service asks the courses service (GET /courses, same
+        timeout) whether course_id belongs to an existing course. If the courses
+        service cannot be reached, nothing is saved and the answer is 503.
       requestBody:
         required: true
         content:
@@ -52,9 +58,20 @@ paths:
           description: Assignment created
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/AssignmentInput" }
+              schema: { $ref: "#/components/schemas/AssignmentCreated" }
         "400":
-          description: A required field is missing
+          description: >
+            The body is not a JSON object; a required field is missing; title is
+            longer than 200 characters or description longer than 500; priority is
+            not Low, Medium or High; due_date is not a date; course_id is not a
+            positive whole number, or does not match an existing course
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "503":
+          description: >
+            The courses service is unavailable, so the course could not be checked
+            and nothing was saved; or the service's own database is unavailable
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
@@ -69,7 +86,13 @@ paths:
       summary: Switch an assignment between completed and not completed
       responses:
         "204":
-          description: Toggled (or did not exist)
+          description: Toggled
+        "404":
+          description: No assignment has this id
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "503": { $ref: "#/components/responses/DatabaseUnavailable" }
 
   /assignments/{assignment_id}:
     parameters:
@@ -82,8 +105,15 @@ paths:
       responses:
         "204":
           description: Deleted (or did not exist)
+        "503": { $ref: "#/components/responses/DatabaseUnavailable" }
 
 components:
+  responses:
+    DatabaseUnavailable:
+      description: The service's own database stayed unreachable through every connection retry
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
   schemas:
     Assignment:
       type: object
@@ -106,8 +136,18 @@ components:
       type: object
       required: [title, due_date, priority, course_id]
       properties:
+        title: { type: string, minLength: 1, maxLength: 200, example: Assignment 2 }
+        description: { type: string, maxLength: 500, description: "Optional, defaults to an empty string", example: Report and ADRs }
+        due_date: { type: string, format: date, example: "2026-12-01" }
+        priority: { type: string, enum: [Low, Medium, High] }
+        course_id: { type: integer, minimum: 1, description: Id of an existing course, example: 1 }
+    AssignmentCreated:
+      type: object
+      description: The saved values; due_date is always returned as YYYY-MM-DD
+      required: [title, description, due_date, priority, course_id]
+      properties:
         title: { type: string, example: Assignment 2 }
-        description: { type: string, description: "Optional, defaults to an empty string", example: Report and ADRs }
+        description: { type: string, example: Report and ADRs }
         due_date: { type: string, format: date, example: "2026-12-01" }
         priority: { type: string, enum: [Low, Medium, High] }
         course_id: { type: integer, example: 1 }
